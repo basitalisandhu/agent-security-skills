@@ -1,0 +1,30 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "agent-security-skills",
+  "description": "Skills, hooks, agents and an MCP server for securing LLM agents: threat modelling, config audits, prompt-injection review, MCP server review, incident lookup and Hisar policy generation.",
+  "owner": {
+    "name": "Muhammad Basit Ali",
+    "url": "https://github.com/basitalisandhu"
+  },
+  "metadata": {
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "agent-security",
+      "source": "./plugins/agent-security",
+      "description": "Nine security skills for LLM agents, two guard hooks for Bash, a read-only security reviewer agent, a Hisar integrator agent, and an optional incident-database MCP server.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Muhammad Basit Ali",
+        "url": "https://github.com/basitalisandhu"
+      },
+      "homepage": "https://github.com/basitalisandhu/agent-security-skills",
+      "repository": "https://github.com/basitalisandhu/agent-security-skills",
+      "license": "MIT",
+      "keywords": ["security", "ai-security", "agent-security", "mcp", "prompt-injection", "threat-model", "hisar"],
+      "category": "security",
+      "tags": ["security", "agents", "mcp", "prompt-injection", "threat-modeling", "hisar"]
+    }
+  ]
+}

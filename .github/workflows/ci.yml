@@ -1,0 +1,100 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate plugin structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Validate JSON, skills, commands, agents, hooks and README
+        run: python3 scripts/validate_plugin.py
+
+  python-tests:
+    name: Python tests (hooks and skill scripts)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Run unit tests
+        run: python3 scripts/run_tests.py -v
+      - name: Audit this repository with its own scanner
+        run: python3 plugins/agent-security/skills/agent-config-audit/scripts/audit_agent_config.py --root . --format markdown --fail-on high
+
+  mcp-server:
+    name: Build and test the incidents MCP server
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/agent-security/mcp/incidents-server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: plugins/agent-security/mcp/incidents-server/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+
+  semgrep-rules:
+    name: Test the bundled Semgrep rules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install semgrep==1.179.0
+      - name: Rule unit tests (Python and JavaScript fixtures)
+        run: |
+          cd plugins/agent-security/skills/semgrep-agentic/rules
+          semgrep --metrics=off --test --config agentic-python.yaml tests/agentic-python.py
+          semgrep --metrics=off --test --config agentic-javascript.yaml tests/agentic-javascript.ts
+      - name: Config rules fire on the bad fixture and stay quiet on the good one
+        run: |
+          cd plugins/agent-security/skills/semgrep-agentic/rules
+          semgrep --metrics=off --config agentic-config.yaml --json -o bad.json tests/config-bad/.claude/settings.json tests/config-bad/.mcp.json
+          semgrep --metrics=off --config agentic-config.yaml --json -o ok.json tests/config-ok/.claude/settings.json tests/config-ok/.mcp.json
+          python3 - <<'PY'
+          import json
+          bad = {r["check_id"].split(".")[-1] for r in json.load(open("bad.json"))["results"]}
+          ok = json.load(open("ok.json"))["results"]
+          expected = {"bash-wildcard-allowed", "bypass-permissions-default", "mcp-plain-http", "mcp-literal-bearer-token", "mcp-unpinned-npx"}
+          missing = expected - bad
+          assert not missing, f"config rules did not fire: {missing}"
+          assert not ok, f"config rules fired on the good fixture: {[r['check_id'] for r in ok]}"
+          print("config rules ok:", sorted(bad))
+          PY
+
+  claude-plugin-validate:
+    name: claude plugin validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install the Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Validate the marketplace and the plugin
+        run: |
+          claude plugin validate .
+          claude plugin validate ./plugins/agent-security

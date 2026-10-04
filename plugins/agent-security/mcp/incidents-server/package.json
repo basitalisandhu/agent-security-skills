@@ -1,0 +1,31 @@
+{
+  "name": "agent-incidents-mcp",
+  "version": "0.1.0",
+  "mcpName": "io.github.basitalisandhu/agent-incidents",
+  "private": true,
+  "description": "Read-only MCP server (stdio) over the AI agent incident dataset bundled with the agent-security plugin.",
+  "license": "MIT",
+  "author": "Muhammad Basit Ali",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "agent-incidents-mcp": "dist/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "pretest": "npm run build",
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

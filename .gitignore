@@ -1,0 +1,36 @@
+# Node
+node_modules/
+plugins/agent-security/mcp/incidents-server/dist/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Semgrep and local output
+.semgrep/
+semgrep-agentic.json
+AGENT-SECURITY-REPORT.md
+agent-config-audit.json
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+
+# build and environment artifacts
+node_modules/
+.venv/
+venv/
+dist/
+build/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+.DS_Store
+.semgrep/
+results.sarif
