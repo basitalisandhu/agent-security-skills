@@ -10,6 +10,7 @@
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { z } from "zod";
 import { FILTER_FIELDS, STATS_FIELDS, getIncident, loadDataset, primaryUrl, searchIncidents, stats, type Dataset } from "./data.js";
@@ -132,7 +133,18 @@ async function main(): Promise<void> {
   await server.connect(transport);
 }
 
-const invokedDirectly = process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
+// Compare real paths: an installed bin (npx, npm i -g) is a symlink, so argv[1] differs from import.meta.url.
+function isInvokedDirectly(): boolean {
+  const entry = process.argv[1];
+  if (entry === undefined) return false;
+  try {
+    return import.meta.url === pathToFileURL(realpathSync(entry)).href;
+  } catch {
+    return false;
+  }
+}
+
+const invokedDirectly = isInvokedDirectly();
 if (invokedDirectly) {
   main().catch((err) => {
     console.error(`[agent-incidents] fatal: ${err instanceof Error ? err.message : String(err)}`);

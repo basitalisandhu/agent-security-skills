@@ -1,6 +1,8 @@
 # Node
 node_modules/
 plugins/agent-security/mcp/incidents-server/dist/
+plugins/agent-security/mcp/incidents-server/data/
+*.tgz
 
 # Python
 __pycache__/

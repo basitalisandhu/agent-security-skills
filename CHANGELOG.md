@@ -4,13 +4,24 @@ All notable changes to this project are documented here. The format follows Keep
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-04
+
+First tagged release. The incidents MCP server is published to GitHub Packages, using only the workflow's `GITHUB_TOKEN`:
+
+- npm (`https://npm.pkg.github.com`): `@basitalisandhu/agent-incidents-mcp`.
+- GitHub Container Registry: `ghcr.io/basitalisandhu/agent-incidents-mcp`, tagged `0.1.0` and `latest`, for linux/amd64 and linux/arm64, with an SPDX SBOM, a build provenance attestation and a keyless cosign signature.
+
 ### Changed
 
 - Renamed the umbrella project from Hisar to Masoon; links, names and identifiers updated.
-
-## [0.1.0] - 2026-10-03
+- The incidents MCP server package is now `@basitalisandhu/agent-incidents-mcp` (no longer private), with `publishConfig`, `files` and `repository.directory`; `server.json` names the scoped package. The plugin still runs the server from source.
+- The server prefers a `data/incidents.json` next to `dist/` (present in the npm package and the image) and falls back to the plugin's snapshot, and it now starts when run through a symlinked bin (`npx`, `npm i -g`).
 
 ### Added
+
+- `publish-github-packages.yml`: on a `v*` tag, builds and tests the server, publishes the npm package (skipping a version that already exists), builds, pushes, attests and signs the image, and creates the GitHub release with the SBOM attached. Pull requests that touch packaging run it as a dry run.
+- A root `Dockerfile` (digest-pinned `node:22-alpine`, runtime dependencies only, the dataset snapshot, non-root `node` user, stdio) and a CI job that builds it and initializes the server over stdio.
+- A test that starts the server through a symlinked bin and checks what `npm pack` ships.
 
 - Plugin marketplace `agent-security-skills` with one plugin, `agent-security`.
 - Nine skills: `agent-threat-model`, `agent-config-audit`, `mcp-server-review`, `prompt-injection-review`, `hisar-policy`, `incident-lookup`, `secure-agent-checklist`, `agent-eval-harness`, `semgrep-agentic`.

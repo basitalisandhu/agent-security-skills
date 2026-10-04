@@ -54,6 +54,20 @@ jobs:
       - run: npm run build
       - run: npm test
 
+  container-build:
+    name: Build the incidents MCP server image and start it on stdio
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build the image, initialize over stdio and check the user
+        run: |
+          docker build --build-arg VERSION=ci -t agent-incidents-mcp:ci .
+          INIT='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}'
+          printf '%s\n' "$INIT" | timeout 30 docker run --rm -i agent-incidents-mcp:ci | grep -q '"name":"agent-incidents"'
+          test "$(docker run --rm --entrypoint id agent-incidents-mcp:ci -un)" = "node"
+
   semgrep-rules:
     name: Test the bundled Semgrep rules
     runs-on: ubuntu-latest

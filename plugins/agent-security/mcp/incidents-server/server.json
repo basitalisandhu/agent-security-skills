@@ -14,7 +14,7 @@
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
-      "identifier": "agent-incidents-mcp",
+      "identifier": "@basitalisandhu/agent-incidents-mcp",
       "version": "0.1.0",
       "runtimeHint": "npx",
       "transport": {

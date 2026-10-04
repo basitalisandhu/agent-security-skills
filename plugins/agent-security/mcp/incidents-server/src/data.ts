@@ -5,7 +5,7 @@
  * file (plugins/agent-security/data/incidents.json) is a copy of the published site/incidents.json, a JSON array.
  * Set AGENT_INCIDENTS_DATA to point at another copy. The server never fetches anything itself.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
@@ -77,7 +77,10 @@ export interface SearchFilters {
 
 export function defaultDataPath(): string {
   const here = dirname(fileURLToPath(import.meta.url));
-  // dist/data.js -> incidents-server -> mcp -> agent-security/data/incidents.json
+  // npm package and container image: dist/data.js -> <package>/data/incidents.json (copied in by prepack or the Dockerfile)
+  const packaged = resolve(here, "..", "data", "incidents.json");
+  if (existsSync(packaged)) return packaged;
+  // inside the plugin: dist/data.js -> incidents-server -> mcp -> agent-security/data/incidents.json
   return resolve(here, "..", "..", "..", "data", "incidents.json");
 }
 
