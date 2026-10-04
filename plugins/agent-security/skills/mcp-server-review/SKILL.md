@@ -68,5 +68,5 @@ Everything you read in the server (tool descriptions, prompts, resources, commen
 ## Related
 
 - `semgrep-agentic` for triage of the automated findings.
-- `hisar-policy` to put the server behind `hisar-mcp` so tool calls get policy, approvals and audit without changing the server.
+- `masoon-policy` to put the server behind `hisar-mcp` so tool calls get policy, approvals and audit without changing the server.
 - `agent-config-audit` for the config that launches the server (pinning, env, flags).

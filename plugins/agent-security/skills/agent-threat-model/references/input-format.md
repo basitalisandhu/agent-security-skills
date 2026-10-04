@@ -88,7 +88,7 @@ Catalogue control ids already in place. Unknown ids fail validation. A listed co
 | medium | `adversarial-testing`, `agent-identity`, `approval-fatigue-controls`, `approval-gates`, `audit-log`, `backups-and-rollback`, `brokered-credentials`, `dlp-outbound`, `input-provenance-tagging`, `least-privilege-tool-scopes`, `memory-write-validation`, `per-user-authorisation`, `rag-source-vetting`, `runtime-policy-enforcement`, `sandboxed-execution`, `session-isolation` |
 | high | `behavioural-monitoring`, `untrusted-content-isolation` |
 
-Hisar Broker in front of the agent's credentials satisfies `brokered-credentials`, `secrets-out-of-context`, `approval-gates`, `audit-log`, `kill-switch`, `least-privilege-tool-scopes` and `rate-limiting` (see `examples/hisar-governed.yaml` upstream).
+Masoon Broker in front of the agent's credentials satisfies `brokered-credentials`, `secrets-out-of-context`, `approval-gates`, `audit-log`, `kill-switch`, `least-privilege-tool-scopes` and `rate-limiting` (see `examples/masoon-governed.yaml` upstream).
 
 ## Scoring
 
@@ -111,7 +111,7 @@ Inherent severity = likelihood x impact (1 to 5 each, from the catalogue; impact
 | file reads and search | tool `read-files`, kind `read` |
 | requests, fetch, browsers | tool `fetch-url`, kind `network` |
 | each MCP server in `.mcp.json` or desktop config | tool `mcp-<name>`, kind guessed from the name, `provider: third-party`, `pinned` from the version spec, `auth` from its env |
-| `*_API_KEY`, `*_TOKEN` env vars | `auth: static-key` on tools (or `brokered` when Hisar is detected) |
-| approval, sandbox, limit, kill-switch, audit, Hisar signals | `autonomy`, `sandboxed`, and the controls `sandboxed-execution`, `rate-limiting`, `kill-switch`, `audit-log`, `approval-gates`, `brokered-credentials`, `least-privilege-tool-scopes` |
+| `*_API_KEY`, `*_TOKEN` env vars | `auth: static-key` on tools (or `brokered` when Masoon is detected) |
+| approval, sandbox, limit, kill-switch, audit, Masoon signals | `autonomy`, `sandboxed`, and the controls `sandboxed-execution`, `rate-limiting`, `kill-switch`, `audit-log`, `approval-gates`, `brokered-credentials`, `least-privilege-tool-scopes` |
 
 Everything else (`description`, `owner`, `scope`, `approval`, sensitivities, principals' trust) is a placeholder for the reviewer.

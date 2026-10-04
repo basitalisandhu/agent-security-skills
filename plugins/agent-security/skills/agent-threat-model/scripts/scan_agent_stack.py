@@ -10,7 +10,7 @@ every entry carries the files it was detected in, so a reviewer can correct it q
 It detects frameworks and model providers from dependency files and imports, tools by the capability
 they carry (shell, messaging, database, repository writes, cloud APIs, payments, file deletion, URL fetch),
 input channels (chat, e-mail, web, documents, tickets, repository issues, calendar, rules files, retrieval),
-data stores, credentials, MCP servers, and signals of approvals, sandboxing, limits and Hisar.
+data stores, credentials, MCP servers, and signals of approvals, sandboxing, limits and Masoon.
 
 Usage:
   scan_agent_stack.py [ROOT] [--out system.yaml] [--json]
@@ -143,7 +143,7 @@ def detect(root: Path) -> dict:
     hits: dict[str, dict[str, set[str]]] = {"frameworks": {}, "providers": {}, "inputs": {}, "authorities": {}, "stores": {}}
     creds: dict[str, set[str]] = {}
     mcp_servers: list[dict] = []
-    signals: dict[str, set[str]] = {"approval": set(), "sandbox": set(), "limits": set(), "kill": set(), "audit": set(), "hisar": set()}
+    signals: dict[str, set[str]] = {"approval": set(), "sandbox": set(), "limits": set(), "kill": set(), "audit": set(), "masoon": set()}
     files = 0
     for p in iter_files(root):
         rel = str(p.relative_to(root))
@@ -164,7 +164,7 @@ def detect(root: Path) -> dict:
                     hits[table].setdefault(name, set()).add(rel)
         for m in CRED_RE.finditer(text):
             creds.setdefault(m.group(1), set()).add(rel)
-        for key, pat in (("approval", APPROVAL_RE), ("sandbox", SANDBOX_RE), ("limits", LIMIT_RE), ("kill", KILL_RE), ("audit", AUDIT_RE), ("hisar", HISAR_RE)):
+        for key, pat in (("approval", APPROVAL_RE), ("sandbox", SANDBOX_RE), ("limits", LIMIT_RE), ("kill", KILL_RE), ("audit", AUDIT_RE), ("masoon", HISAR_RE)):
             if pat.search(text):
                 signals[key].add(rel)
         if p.name in {".mcp.json", "mcp.json", "claude_desktop_config.json"} or (p.name == "settings.json" and ".claude" in p.parts):
@@ -209,8 +209,8 @@ def build_model(root: Path, d: dict) -> dict:
     taken: set[str] = set()
     providers = sorted(h["providers"])
     any_cred = bool(d["credentials"])
-    hisar = bool(sig["hisar"])
-    default_auth = "brokered" if hisar else ("static-key" if any_cred else "none")
+    masoon = bool(sig["masoon"])
+    default_auth = "brokered" if masoon else ("static-key" if any_cred else "none")
 
     channels: list[dict] = []
     principal_low_channels: list[str] = []
@@ -275,7 +275,7 @@ def build_model(root: Path, d: dict) -> dict:
                       "sandboxed": False, "provider": "third-party", "pinned": bool(s["pinned"]), "description": f"MCP server ({s['transport']}). Detected in: {s['file']}"})
 
     agent_id = make_id("main-agent", taken)
-    autonomy = "act-with-approval" if (sig["approval"] or hisar) else "act"
+    autonomy = "act-with-approval" if (sig["approval"] or masoon) else "act"
     memory = "persistent" if "memory" in store_ids else ("session" if stores else "none")
     agents = [{"id": agent_id, "model_provider": ", ".join(providers) if providers else "hosted LLM", "autonomy": autonomy, "memory": memory,
                "inputs": [c["id"] for c in channels], "tools": [t["id"] for t in tools], "model_pinned": False,
@@ -291,13 +291,13 @@ def build_model(root: Path, d: dict) -> dict:
         controls.append("sandboxed-execution")
     if sig["limits"]:
         controls.append("rate-limiting")
-    if sig["kill"] or hisar:
+    if sig["kill"] or masoon:
         controls.append("kill-switch")
-    if sig["audit"] or hisar:
+    if sig["audit"] or masoon:
         controls.append("audit-log")
-    if sig["approval"] or hisar:
+    if sig["approval"] or masoon:
         controls.append("approval-gates")
-    if hisar:
+    if masoon:
         controls += ["brokered-credentials", "least-privilege-tool-scopes"]
     controls = [c for c in dict.fromkeys(controls) if c in CONTROL_IDS]
 

@@ -1,8 +1,8 @@
 # agent-security-skills
 
-**Claude Code security plugin and agent skills for securing LLM agents: threat modelling, configuration audits, prompt injection review, MCP server review, incident lookup and Hisar policy generation.**
+**Claude Code security plugin and agent skills for securing LLM agents: threat modelling, configuration audits, prompt injection review, MCP server review, incident lookup and Masoon policy generation.**
 
-agent-security-skills is a Claude Code plugin marketplace and an [agentskills.io](https://agentskills.io)-compatible skill pack for people who build or run LLM agents against real APIs, MCP servers and codebases: security engineers reviewing an agent before it ships, and developers who want that review inside the tool they already use. Each skill is a procedure with a tested script or a fixed checklist, so two reviewers reach the same verdict and the evidence is a file, a line or a command output. Part of [Hisar](https://github.com/basitalisandhu/hisar), open-source trust infrastructure for AI agents: who they are, what they may touch, and proof of what they did.
+agent-security-skills is a Claude Code plugin marketplace and an [agentskills.io](https://agentskills.io)-compatible skill pack for people who build or run LLM agents against real APIs, MCP servers and codebases: security engineers reviewing an agent before it ships, and developers who want that review inside the tool they already use. Each skill is a procedure with a tested script or a fixed checklist, so two reviewers reach the same verdict and the evidence is a file, a line or a command output. Part of [Masoon](https://github.com/basitalisandhu/masoon), open-source trust infrastructure for AI agents: who they are, what they may touch, and proof of what they did.
 
 Nine skills (each with a tested script or a checklist), three slash commands, two subagents, two guard hooks for `Bash`, and an optional MCP server over the [ai-agent-incidents](https://github.com/basitalisandhu/ai-agent-incidents) dataset (80 documented events mapped to OWASP Agentic, OWASP LLM and MITRE ATLAS). No telemetry, no network calls except the documented, opt-in dataset refresh.
 
@@ -34,7 +34,7 @@ To try it without installing, clone the repository and start Claude Code with `c
 
 Requirements: Python 3.11 or newer on `PATH` as `python3` (hooks and skill scripts, standard library only). Optional: [Semgrep](https://semgrep.dev/docs/getting-started/) for `semgrep-agentic`; `uvx` or `pipx` for `agent-threat-model` (while its PyPI publication is pending, install from git: `pipx install git+https://github.com/basitalisandhu/agent-threat-model`); Node 20 or newer to build the incidents MCP server.
 
-After installing, skills appear as `/agent-security:<skill>`, commands as `/agent-security:audit`, `/agent-security:threat-model` and `/agent-security:incidents`, agents as `@agent-agent-security:agent-security-reviewer` and `@agent-agent-security:hisar-integrator`.
+After installing, skills appear as `/agent-security:<skill>`, commands as `/agent-security:audit`, `/agent-security:threat-model` and `/agent-security:incidents`, agents as `@agent-agent-security:agent-security-reviewer` and `@agent-agent-security:masoon-integrator`.
 
 ## What is inside
 
@@ -43,7 +43,7 @@ plugins/agent-security/
 ├── .claude-plugin/plugin.json      plugin manifest
 ├── skills/<name>/SKILL.md          nine skills, each with references/ or scripts/ (and tests)
 ├── commands/                       audit.md, threat-model.md, incidents.md
-├── agents/                         agent-security-reviewer.md, hisar-integrator.md
+├── agents/                         agent-security-reviewer.md, masoon-integrator.md
 ├── hooks/hooks.json                two PreToolUse hooks on Bash, scripts in hooks/scripts/
 ├── .mcp.json                       declares the agent-incidents stdio server
 ├── mcp/incidents-server/           TypeScript MCP server (@modelcontextprotocol/sdk, zod)
@@ -58,7 +58,7 @@ plugins/agent-security/
 | `agent-config-audit` | review or harden `.claude/`, `CLAUDE.md`, `.cursor/`, `.mcp.json`, `claude_desktop_config.json`, hooks, skills, plugins | JSON or Markdown findings with severity from `audit_agent_config.py`: permissions, hooks, MCP pinning and secrets, injection patterns in instruction files |
 | `mcp-server-review` | review, harden or publish an MCP server; enable a third-party one | Checklist verdicts (auth, transport binding, input validation, description poisoning, SSRF, limits, logging) plus a Semgrep pass |
 | `prompt-injection-review` | "is this agent injectable", review tool-calling code, where to put approvals | Tool inventory (`tool_inventory.py`), traced flows judged with the provenance and approval rules, findings table |
-| `hisar-policy` | integrate with Hisar Broker, replace a raw API key, review scopes | Connector, agent and policy bundle, linted (`hisar_policy_lint.py`), admin API calls, agent-side code |
+| `masoon-policy` | integrate with Masoon Broker, replace a raw API key, review scopes | Connector, agent and policy bundle, linted (`masoon_policy_lint.py`), admin API calls, agent-side code |
 | `incident-lookup` | "has this happened before", examples, citations for a review | Filtered incidents (vector, authority, vendor, framework, OWASP Agentic, OWASP LLM, ATLAS, tags), stats, ranked precedents with the controls that would have helped (`incidents.py`, offline fallback) |
 | `secure-agent-checklist` | "is this safe to ship", release gate, go/no-go | Markdown report with pass, fail or n.a. across identity, least privilege, approvals, sandboxing, audit, kill switch, supply chain, evals |
 | `agent-eval-harness` | measure prompt-injection resistance, build a security eval, ASR numbers | AgentDojo-style runner template (`eval_runner.py`) with policies, demo suite, tests, and the path to the real benchmark |
@@ -77,7 +77,7 @@ plugins/agent-security/
 | Agent | Tools | Purpose |
 |---|---|---|
 | `agent-security-reviewer` | Read, Grep, Glob, Bash (read-only use; Write, Edit and web tools disallowed) | Independent review with evidence; never changes files |
-| `hisar-integrator` | Read, Grep, Glob, Bash, Write, Edit | End-to-end Hisar Broker integration: bundle, lint, apply script, agent code |
+| `masoon-integrator` | Read, Grep, Glob, Bash, Write, Edit | End-to-end Masoon Broker integration: bundle, lint, apply script, agent code |
 
 ## Hooks
 
@@ -112,7 +112,7 @@ What each component can touch, so you can decide before you install:
 - **Skills** are instructions plus Python scripts. The scripts read files under the directory you point them at, with caps (2 MB per file for the config audit, 1 MB per file and 4000 or 5000 files for the threat-model scanner and the tool inventory), and write only where you pass `--out` or `--output`. The one exception is `incidents.py`, the only script that can make a network request: a GET to the published dataset JSON (10 s timeout, 20 MB cap, URL overridable with `AGENT_SECURITY_INCIDENTS_URL`), cached for 24 hours in `$XDG_CACHE_HOME/agent-security-skills/incidents.json` (default `~/.cache/agent-security-skills/`), skipped with `--offline`, and never required: any failure falls back to the bundled snapshot.
 - **Hooks** read the tool-call JSON on stdin and print a decision. They parse the command string (including `sh -c`, `eval`, `$(...)` and backtick substitutions) and never execute it, do not modify files, and make no network calls. They run on every `Bash` call while the plugin is enabled; each takes well under 100 ms.
 - **Skill and agent text** tells Claude to treat everything it reads in your repository (instruction files, tool descriptions, comments, scanner output) as untrusted data under review, never as instructions.
-- **Commands and agents** are Markdown. The `hisar-integrator` agent can edit files in your project because that is its job; the reviewer cannot.
+- **Commands and agents** are Markdown. The `masoon-integrator` agent can edit files in your project because that is its job; the reviewer cannot.
 - **MCP server** reads one JSON file, listens on nothing, fetches nothing, executes nothing. Dependencies: `@modelcontextprotocol/sdk` and `zod`.
 - **No telemetry.** Nothing here reports usage anywhere.
 - The repository audits itself in CI with its own scanner (`--fail-on high`) and validates its structure with `scripts/validate_plugin.py` and `claude plugin validate`.
@@ -135,7 +135,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the ground rules (standard library on
 ## Frequently asked questions
 
 **Is there a Claude Code plugin for security reviews of AI agents?**
-Yes, this one. `agent-security` is a Claude Code plugin with nine skills that do real work from inside the editor: threat model an agent codebase (drafting a system description for `agent-threat-model` and running it), audit `.claude/`, `CLAUDE.md`, `.cursor/`, `.mcp.json` and desktop MCP configs for permissions, hooks, unpinned servers and secrets, review an MCP server against a checklist, trace prompt injection from untrusted inputs to tool calls, generate Hisar Broker policies, look up precedents in the incident dataset, build a security eval, and run the 36-rule agentic-semgrep-rules pack. Three slash commands (`/agent-security:audit`, `/agent-security:threat-model`, `/agent-security:incidents`) chain the skills into reports, and two subagents (a read-only reviewer and a Hisar integrator) run them with the right tool permissions. The skills follow the agentskills.io format, so other assistants that read `SKILL.md` can load them too.
+Yes, this one. `agent-security` is a Claude Code plugin with nine skills that do real work from inside the editor: threat model an agent codebase (drafting a system description for `agent-threat-model` and running it), audit `.claude/`, `CLAUDE.md`, `.cursor/`, `.mcp.json` and desktop MCP configs for permissions, hooks, unpinned servers and secrets, review an MCP server against a checklist, trace prompt injection from untrusted inputs to tool calls, generate Masoon Broker policies, look up precedents in the incident dataset, build a security eval, and run the 36-rule agentic-semgrep-rules pack. Three slash commands (`/agent-security:audit`, `/agent-security:threat-model`, `/agent-security:incidents`) chain the skills into reports, and two subagents (a read-only reviewer and a Masoon integrator) run them with the right tool permissions. The skills follow the agentskills.io format, so other assistants that read `SKILL.md` can load them too.
 
 **Does it send my code anywhere?**
 No. Skills are Markdown instructions plus standard-library Python scripts that read files under the directory you point them at and write only where you pass `--out`. The hooks read the tool call on stdin and print a decision. The MCP server reads one JSON file, listens on nothing and fetches nothing. The one network call in the whole plugin is optional: `incidents.py` may GET the published dataset JSON to refresh its cache (10 second timeout, 20 MB cap, skipped with `--offline`, and never required because the bundled snapshot is the fallback). There is no telemetry, and the repository audits itself in CI with its own scanner.
@@ -144,26 +144,26 @@ No. Skills are Markdown instructions plus standard-library Python scripts that r
 Yes. The `block-secret-exposure` hook runs before every `Bash` call and exits 2, which blocks the command and shows the reason to the model, when the command would print or export likely secrets: `env`, `printenv`, bare `export` or `set`, `echo $OPENAI_API_KEY`, `cat .env`, `less ~/.aws/credentials`, `base64 ~/.ssh/id_ed25519`, `scp .env host:`, `gh auth token`, `gcloud auth print-access-token`, `kubectl get secret -o yaml`, `print(os.environ)`, including inside `sh -c`, `eval`, `sudo`, `$(...)` and backticks. It allows `env FOO=bar cmd`, `printenv HOME`, `[ -n "$TOKEN" ]`, `cat .env.example`, `source .env` and using a secret in a header. A second hook, `warn-insecure-fetch`, asks before `curl` or `wget` to plain HTTP, raw IPs, the cloud metadata address, or a download piped into a shell. Known pattern gaps are listed in [docs/good-first-issues.md](docs/good-first-issues.md); there is no environment-variable bypass.
 
 **Does it work with MCP servers?**
-In three ways. The `mcp-server-review` skill reviews an MCP server you are writing or about to enable (authentication, transport binding, input validation, description poisoning, SSRF, limits, logging) and runs the Semgrep rules for FastMCP and MCP SDK tool handlers. The `agent-config-audit` skill checks `.mcp.json` and desktop MCP configs for unpinned servers and secrets in environment blocks. And the plugin ships its own MCP server, `agent-incidents`, a read-only stdio server over the incident dataset with `search_incidents`, `get_incident` and `stats`, built from `mcp/incidents-server` with `npm install && npm run build && npm test`. For gating MCP tool calls at run time with approvals and an audit log, use `hisar-mcp` from [hisar-broker](https://basitalisandhu.github.io/hisar/hisar-broker.html); the `hisar-policy` skill writes the policies for it.
+In three ways. The `mcp-server-review` skill reviews an MCP server you are writing or about to enable (authentication, transport binding, input validation, description poisoning, SSRF, limits, logging) and runs the Semgrep rules for FastMCP and MCP SDK tool handlers. The `agent-config-audit` skill checks `.mcp.json` and desktop MCP configs for unpinned servers and secrets in environment blocks. And the plugin ships its own MCP server, `agent-incidents`, a read-only stdio server over the incident dataset with `search_incidents`, `get_incident` and `stats`, built from `mcp/incidents-server` with `npm install && npm run build && npm test`. For gating MCP tool calls at run time with approvals and an audit log, use `hisar-mcp` from [masoon-broker](https://basitalisandhu.github.io/masoon/masoon-broker.html); the `masoon-policy` skill writes the policies for it.
 
 **How do I install it?**
 In a Claude Code session: `/plugin marketplace add basitalisandhu/agent-security-skills` then `/plugin install agent-security@agent-security-skills`. From a shell: `claude plugin marketplace add basitalisandhu/agent-security-skills` then `claude plugin install agent-security@agent-security-skills --scope user`. To try it without installing, clone the repository and start Claude Code with `claude --plugin-dir ./plugins/agent-security`. Requirements: Python 3.11 or newer on `PATH` as `python3`; optionally Semgrep, `uvx` or `pipx` for `agent-threat-model`, and Node 20 or newer to build the incidents MCP server. After installing, skills appear as `/agent-security:<skill>`.
 
 ## Roadmap
 
-- `0.2`: `hisar-integrator` reads an existing broker's policies and proposes a least-privilege diff; `agent-threat-model` runs `atm diff` before and after proposed controls automatically.
-- `0.3`: a `PostToolUse` hook that records tool calls to a Hisar audit chain through `hisar-hook`; `mcp-server-review` gains a runtime probe (connect, list tools, diff descriptions across calls).
+- `0.2`: `masoon-integrator` reads an existing broker's policies and proposes a least-privilege diff; `agent-threat-model` runs `atm diff` before and after proposed controls automatically.
+- `0.3`: a `PostToolUse` hook that records tool calls to a Masoon audit chain through `hisar-hook`; `mcp-server-review` gains a runtime probe (connect, list tools, diff descriptions across calls).
 - `0.4`: eval suites for common agent shapes (support bot, coding agent, browsing agent) runnable in CI without a model.
 - Ongoing: more Semgrep rules upstream in `agentic-semgrep-rules`, each with an incident as its justification.
 
-## The Hisar projects
+## The Masoon projects
 
-Docs page for this plugin: [basitalisandhu.github.io/hisar/agent-security-skills.html](https://basitalisandhu.github.io/hisar/agent-security-skills.html).
+Docs page for this plugin: [basitalisandhu.github.io/masoon/agent-security-skills.html](https://basitalisandhu.github.io/masoon/agent-security-skills.html).
 
 | Project | What it is |
 |---|---|
-| [hisar](https://github.com/basitalisandhu/hisar) | Platform overview and front door: architecture, components, design principles and roadmap, with a [docs site](https://basitalisandhu.github.io/hisar/). |
-| [hisar-broker](https://basitalisandhu.github.io/hisar/hisar-broker.html) | Scoped, short-lived, per-action credentials for AI agents with human approvals, kill switch and hash-chained audit log. TypeScript, MIT. |
+| [masoon](https://github.com/basitalisandhu/masoon) | Platform overview and front door: architecture, components, design principles and roadmap, with a [docs site](https://basitalisandhu.github.io/masoon/). |
+| [masoon-broker](https://basitalisandhu.github.io/masoon/masoon-broker.html) | Scoped, short-lived, per-action credentials for AI agents with human approvals, kill switch and hash-chained audit log. TypeScript, MIT. |
 | [llm-agent-control-plane](https://github.com/basitalisandhu/llm-agent-control-plane) | Deterministic policy enforcement point for LLM agents (provenance + approval rules), evaluated on AgentDojo, with an 80-event incident dataset. Apache-2.0 / CC BY 4.0. |
 | [ai-agent-incidents](https://github.com/basitalisandhu/ai-agent-incidents) | Open, structured dataset of publicly documented AI-agent security incidents: JSON + schema, mapped to OWASP and MITRE ATLAS, with a [browsable site](https://basitalisandhu.github.io/ai-agent-incidents/). |
 | [agentic-semgrep-rules](https://github.com/basitalisandhu/agentic-semgrep-rules) | Semgrep rule pack for insecure agent code: unbounded tool permissions, eval of model output, SSRF through tool URLs, prompt interpolation, MCP servers without auth. |

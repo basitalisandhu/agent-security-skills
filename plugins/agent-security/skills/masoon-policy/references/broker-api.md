@@ -1,6 +1,6 @@
-# Hisar Broker: the shapes this skill relies on
+# Masoon Broker: the shapes this skill relies on
 
-Condensed from `docs/api-reference.md`, `docs/concepts.md` and `docs/agent-developer-guide.md` of https://basitalisandhu.github.io/hisar/hisar-broker.html. When in doubt, those documents win.
+Condensed from `docs/api-reference.md`, `docs/concepts.md` and `docs/agent-developer-guide.md` of https://basitalisandhu.github.io/masoon/masoon-broker.html. When in doubt, those documents win.
 
 ## Credentials
 
@@ -86,7 +86,7 @@ const BASE = process.env.HISAR_URL.replace(/\/$/, "");
 const KEY = process.env.HISAR_AGENT_KEY;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function hisar(method, path, { body, headers = {} } = {}) {
+async function masoon(method, path, { body, headers = {} } = {}) {
   const res = await fetch(BASE + path, { method, headers: { ...(body === undefined ? {} : { "content-type": "application/json" }), ...headers }, body: body === undefined ? undefined : JSON.stringify(body) });
   const text = await res.text(); let data; try { data = JSON.parse(text); } catch { data = text; }
   return { status: res.status, headers: res.headers, data };
@@ -94,20 +94,20 @@ async function hisar(method, path, { body, headers = {} } = {}) {
 const asAgent = { "x-hisar-agent-key": KEY };
 
 export async function getToken(scope, { purpose, ttl, waitMs = 5 * 60_000 } = {}) {
-  const r = await hisar("POST", "/v1/token", { body: { scope, purpose, ttl }, headers: asAgent });
+  const r = await masoon("POST", "/v1/token", { body: { scope, purpose, ttl }, headers: asAgent });
   if (r.status === 200) return r.data.access_token;
   if (r.status !== 202) throw new Error(`token request failed: ${r.status} ${r.data.error ?? ""}`);
   const giveUpAt = Math.min(Date.now() + waitMs, Date.parse(r.data.expires_at));
   while (Date.now() < giveUpAt) {
     await sleep(2000);
-    const p = await hisar("GET", r.data.poll, { headers: asAgent });
+    const p = await masoon("GET", r.data.poll, { headers: asAgent });
     if (p.data.status === "approved") { if (p.data.access_token) return p.data.access_token; throw new Error("approved but token revoked"); }
     if (p.data.status === "denied") throw new Error("a human denied this request");
     if (p.data.status === "expired") throw new Error("nobody decided before the request expired");
   }
   throw new Error("gave up waiting for approval");
 }
-export const call = (token, connector, method, path, body) => hisar(method, `/v1/proxy/${connector}${path}`, { body, headers: { authorization: `Bearer ${token}` } });
+export const call = (token, connector, method, path, body) => masoon(method, `/v1/proxy/${connector}${path}`, { body, headers: { authorization: `Bearer ${token}` } });
 ```
 
 Python (standard library) is in `examples/agent.py` of the broker repository: `HisarAgent(url, key).token(scope, purpose=..., ttl=...)` blocks while a human approves; `.call(token, connector, "GET", "/contacts?limit=20")` returns `(status, body)`.

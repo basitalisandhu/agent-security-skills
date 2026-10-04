@@ -46,7 +46,7 @@ Severity in brackets is the default; the scanner lowers it when the context is n
 
 | ID | Trigger |
 |---|---|
-| SEC-001 [critical, high] | OpenAI, Anthropic, GitHub, GitLab, AWS, Slack, Google, Stripe, npm, Hugging Face and Hisar key formats; private key blocks; JWTs; generic `api_key = "<high-entropy>"` assignments. Placeholders (`xxxx`, `your-`, `<…>`, `EXAMPLE`) are skipped. Evidence is redacted. |
+| SEC-001 [critical, high] | OpenAI, Anthropic, GitHub, GitLab, AWS, Slack, Google, Stripe, npm, Hugging Face and Masoon key formats; private key blocks; JWTs; generic `api_key = "<high-entropy>"` assignments. Placeholders (`xxxx`, `your-`, `<…>`, `EXAMPLE`) are skipped. Evidence is redacted. |
 
 ## Instruction files (CLAUDE.md, AGENTS.md, .cursorrules, .mdc, SKILL.md, commands, agents, copilot-instructions)
 
