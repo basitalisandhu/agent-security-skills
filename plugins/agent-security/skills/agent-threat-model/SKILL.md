@@ -30,7 +30,7 @@ The scanner reads source and configuration, and you open files to correct the dr
    python3 "${CLAUDE_PLUGIN_ROOT}/skills/agent-threat-model/scripts/scan_agent_stack.py" . --out system.yaml
    ```
 
-   The scanner detects frameworks and model providers, tools by capability (shell, messaging, database, repository writes, cloud APIs, payments, file deletion, URL fetch, each MCP server), input channels (chat, e-mail, web, documents, tickets, repository issues, calendar, rules files, retrieval), data stores, credentials, and signals of approvals, sandboxing, limits, audit, kill switches and Masoon. Every entry's `description` names the files it came from. Ids are unique and the references resolve, so the draft already passes `atm validate`.
+   The scanner detects frameworks and model providers, tools by capability (shell, messaging, database, repository writes, cloud APIs, payments, file deletion, URL fetch, each MCP server), input channels (chat, e-mail, web, documents, tickets, repository issues, calendar, rules files, retrieval), data stores, credentials, and signals of approvals, sandboxing, limits, audit, kill switches and a credential broker. Every entry's `description` names the files it came from. Ids are unique and the references resolve, so the draft already passes `atm validate`.
 
 2. **Validate, then correct and complete.** Run `atm validate system.yaml`. Install: `pipx install agent-threat-model` or `uvx --from agent-threat-model atm` once it is on PyPI; while publication is pending, `pipx install git+https://github.com/basitalisandhu/agent-threat-model` or `uvx --from git+https://github.com/basitalisandhu/agent-threat-model atm`. Then read the file with the user and fix what the scanner guessed. Fields it cannot know:
    - `system.description` and `system.owner`.
@@ -86,5 +86,4 @@ The scanner reads source and configuration, and you open files to correct the dr
 ## Related
 
 - `prompt-injection-review` goes deeper on the flows the threat model flags.
-- `masoon-policy` implements the `brokered-credentials`, `approval-gates`, `audit-log`, `kill-switch` and `least-privilege-tool-scopes` controls.
 - `secure-agent-checklist` turns the threat model and reviews into a ship decision.

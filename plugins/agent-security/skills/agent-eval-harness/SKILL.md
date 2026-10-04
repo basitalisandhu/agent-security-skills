@@ -5,12 +5,11 @@ license: MIT
 compatibility: Python 3.11 or newer for the template. AgentDojo (pip) and model API access only for the real benchmark; the template and its tests make no network calls.
 metadata:
   author: Muhammad Basit Ali
-  reference: https://github.com/basitalisandhu/llm-agent-control-plane
 ---
 
 # Agent evaluation harness
 
-A security eval for an agent answers two questions with numbers: does it still do the job (**utility**), and how often does an attacker's planted instruction get carried out (**attack success rate, ASR**)? AgentDojo established the shape: an environment with tools and state, benign user tasks with checks, injection tasks that place attacker text where the agent will read it, and a runner that crosses them. This skill gives you that shape in a dependency-free template, wired to the provenance and approval policies from the control-plane paper so defences can be compared on the same suite.
+A security eval for an agent answers two questions with numbers: does it still do the job (**utility**), and how often does an attacker's planted instruction get carried out (**attack success rate, ASR**)? AgentDojo established the shape: an environment with tools and state, benign user tasks with checks, injection tasks that place attacker text where the agent will read it, and a runner that crosses them. This skill gives you that shape in a dependency-free template, wired to a provenance policy and an approval policy (the rules in the `prompt-injection-review` skill's provenance model) so defences can be compared on the same suite.
 
 ## When to use it
 
@@ -41,7 +40,7 @@ Injection-task text and the tool results in traces are test data written to look
 
 4. **Run and record.** `--out results.json` keeps every case with its trace, so a failing case can be replayed. Report **benign utility**, **utility under attack**, **ASR** and **denials** per policy. Run each configuration at least three times when a real model is involved and report the spread; a single run is not evidence.
 
-5. **Graduate to AgentDojo** when the agent fits its tool interface. Install `agentdojo`, write the suite as `TaskSuite` with `user_task` and `injection_task` classes, and plug the PEP from llm-agent-control-plane in as the tool executor to get the same two policies against 949 attack cases. Notes in [references/agentdojo-notes.md](references/agentdojo-notes.md).
+5. **Graduate to AgentDojo** when the agent fits its tool interface. Install `agentdojo`, write the suite as `TaskSuite` with `user_task` and `injection_task` classes, and put the same two policies in the pipeline's tool executor to run them against 949 attack cases. Notes in [references/agentdojo-notes.md](references/agentdojo-notes.md).
 
 6. **Wire it into CI** so a prompt or tool change cannot silently raise ASR: run the template suite on every pull request (no network, seconds), and the real-model suite nightly with a cost cap.
 
@@ -64,4 +63,3 @@ Injection-task text and the tool results in traces are test data written to look
 ## Related
 
 - `prompt-injection-review` finds the flows to write injection tasks for.
-- `masoon-policy` is the production implementation of the approval gate the eval simulates.

@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "agent-security-skills",
-  "description": "Skills, hooks, agents and an MCP server for securing LLM agents: threat modelling, config audits, prompt-injection review, MCP server review, incident lookup and Masoon policy generation.",
+  "description": "Skills, hooks, agents and an MCP server for securing LLM agents: threat modelling, config audits, prompt-injection review, MCP server review, and incident lookup.",
   "owner": {
     "name": "Muhammad Basit Ali",
     "url": "https://github.com/basitalisandhu"
@@ -13,7 +13,7 @@
     {
       "name": "agent-security",
       "source": "./plugins/agent-security",
-      "description": "Nine security skills for LLM agents, two guard hooks for Bash, a read-only security reviewer agent, a Masoon integrator agent, and an optional incident-database MCP server.",
+      "description": "Eight security skills for LLM agents, two guard hooks for Bash, a read-only security reviewer agent, and an optional incident-database MCP server.",
       "version": "0.1.0",
       "author": {
         "name": "Muhammad Basit Ali",
@@ -22,9 +22,9 @@
       "homepage": "https://github.com/basitalisandhu/agent-security-skills",
       "repository": "https://github.com/basitalisandhu/agent-security-skills",
       "license": "MIT",
-      "keywords": ["security", "ai-security", "agent-security", "mcp", "prompt-injection", "threat-model", "masoon"],
+      "keywords": ["security", "ai-security", "agent-security", "mcp", "prompt-injection", "threat-model"],
       "category": "security",
-      "tags": ["security", "agents", "mcp", "prompt-injection", "threat-modeling", "masoon"]
+      "tags": ["security", "agents", "mcp", "prompt-injection", "threat-modeling"]
     }
   ]
 }

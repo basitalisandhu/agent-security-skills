@@ -14,20 +14,13 @@ python3 -m venv .venv && .venv/bin/pip install "agentdojo==0.1.35"
 
 Pin the version; task ids and checks change between releases and your numbers must be comparable over time.
 
-## Running the benchmark with the PEP
+## Running the benchmark with a policy
 
-The control-plane repository (https://github.com/basitalisandhu/llm-agent-control-plane) ships `pep/pep22.py`, a drop-in replacement for AgentDojo's tool executor with the provenance and approval rules, model adapters for OpenAI-compatible endpoints, Ollama and Bedrock, and runners:
+AgentDojo's pipeline has a tool executor element; that is where the policy belongs, so every proposed tool call passes through it before it runs. Port the template's `ProvenancePolicy` and `ApprovalPolicy` (from `scripts/eval_runner.py`) into a custom tool executor, then run the suites with the policy off and on, using the same model, attack template and number of runs for each.
 
-```bash
-git clone https://github.com/basitalisandhu/llm-agent-control-plane && cd llm-agent-control-plane
-python3 -m venv .venv && .venv/bin/pip install agentdojo==0.1.35 openai boto3 matplotlib
-# model-free replay of an obedient agent: no model, all 949 cases, every policy variant
-cd experiments && PYTHONPATH=../pep ../.venv/bin/python preflight_v22.py
-# a local open-weight model through Ollama
-PYTHONPATH=../pep ../.venv/bin/python matrix.py baseline,pep_prov,pep_full 3 runs_local
-```
+A model-free replay (a scripted agent that obeys every injection) is a cheap first check: it shows which cases the policy blocks before any model cost is spent.
 
-The matrix drivers accept the policy variants `baseline`, `spotlight`, `tool_filter`, `repeat_user`, `pep_prov`, `pep_prov_strict`, `pep_full`, `pep_full_nomark`. Results are aggregated with a clustered bootstrap (`make_results.py`), which is the right way to report confidence intervals when cases share a user task.
+When cases share a user task, report confidence intervals with a bootstrap clustered by user task rather than treating every case as independent.
 
 ## Mapping your agent onto a suite
 

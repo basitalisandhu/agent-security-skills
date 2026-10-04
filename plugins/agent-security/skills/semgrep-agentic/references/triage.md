@@ -14,7 +14,7 @@
 | `fastmcp-bind-all-interfaces`, `fastmcp-http-transport-without-auth`, `mcp-http-transport-without-auth` [`mcp-server-binds-all-interfaces`] | The process is reachable from other hosts without auth | Inside a container whose network is isolated and the port is not published (accepted risk, note it) | Bind 127.0.0.1; add auth and Origin validation before exposing |
 | `langchain-dangerous-tools`, `langchain-allow-dangerous-code`, `langchain-allow-dangerous-requests` | The flag or tool is on in a path the model drives | Test code or a sandboxed evaluation harness | Remove the flag; replace the tool with a typed, scoped one |
 | `pickle-load-model-file`, `torch-load-without-weights-only`, `langchain-allow-dangerous-deserialization`, `transformers-trust-remote-code`, `yaml-unsafe-load` [`pickle-model-load`] | The artefact or file comes from a hub, a bucket or a user | The file is produced and consumed by the same trusted pipeline | safetensors; `weights_only=True`; `yaml.safe_load`; signature verification |
-| `hardcoded-llm-api-key`, `llm-api-key-logged`, `api-key-in-command-line-arg` | Always | Test fixtures with obvious placeholders | Environment or a broker (Masoon lease); redact logs; rotate the key |
+| `hardcoded-llm-api-key`, `llm-api-key-logged`, `api-key-in-command-line-arg` | Always | Test fixtures with obvious placeholders | Environment or a credential broker lease; redact logs; rotate the key |
 | `agentic.config.*` (bundled only) | Always, these are configuration facts | Test fixtures that intentionally contain bad config (exclude the fixture directory) | See `agent-config-audit` recommendations |
 
 ## Severity mapping

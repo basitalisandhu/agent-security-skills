@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """AgentDojo-style security evaluation runner: a template you adapt to your own agent.
 
-The shape mirrors AgentDojo (https://github.com/ethz-spylab/agentdojo) and the policy enforcement point in
-https://github.com/basitalisandhu/llm-agent-control-plane:
+The shape mirrors AgentDojo (https://github.com/ethz-spylab/agentdojo), with a policy enforcement point in the
+tool executor:
 
   * an Environment holds state and exposes tools; tool results can carry untrusted text
   * a UserTask is a benign request with a utility check
@@ -139,7 +139,7 @@ class ProvenancePolicy(Policy):
 
 class ApprovalPolicy(ProvenancePolicy):
     """Provenance plus a simulated human who approves a consequential action only when its key arguments
-    appear in the request (an oracle approver, as in the control-plane paper)."""
+    appear in the request (an oracle approver)."""
 
     name = "provenance+approval"
 

@@ -1,6 +1,6 @@
 # The provenance and approval model
 
-Source: *A Deterministic Control Plane for LLM Agents* (M. B. Ali, 2026) and its code, https://github.com/basitalisandhu/llm-agent-control-plane (`pep/pep22.py`). The policy enforcement point (PEP) mediates every proposed tool call with two rules and no model in the enforcement path. In AgentDojo it replaces the tool executor; the same rules fit any agent whose tool calls pass through one place.
+A policy enforcement point (PEP) mediates every proposed tool call with two rules and no model in the enforcement path. In AgentDojo it replaces the tool executor; the same rules fit any agent whose tool calls pass through one place.
 
 ## Tiering
 
@@ -58,7 +58,7 @@ An oracle principal (in the benchmark, the ground-truth task; in production, the
 
 ## Why both
 
-Provenance alone stops the classic exfiltration (an injected address becomes a recipient). Approval alone is worn down by repetition and by arguments the approver cannot verify. Together, in the paper's full benchmark (949 attack cases, 97 benign tasks), the combination admitted 5 attacker goals versus 29 for provenance alone, while keeping 97 of 97 benign tasks for the obedient-agent replay. Read the paper for the real-model numbers; the point for a review is that the rules are cheap, deterministic and testable.
+Provenance alone stops the classic exfiltration (an injected address becomes a recipient). Approval alone is worn down by repetition and by arguments the approver cannot verify. Use both. For a review the point is that the rules are cheap, deterministic and testable; measure them on your own suite with `agent-eval-harness`.
 
 ## Applying it in a review
 
