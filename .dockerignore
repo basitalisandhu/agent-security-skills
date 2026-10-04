@@ -1,0 +1,9 @@
+# Only the incidents MCP server and the dataset snapshot go into the build context.
+*
+!plugins/agent-security/mcp/incidents-server/package.json
+!plugins/agent-security/mcp/incidents-server/package-lock.json
+!plugins/agent-security/mcp/incidents-server/tsconfig.json
+!plugins/agent-security/mcp/incidents-server/README.md
+!plugins/agent-security/mcp/incidents-server/server.json
+!plugins/agent-security/mcp/incidents-server/src/
+!plugins/agent-security/data/incidents.json

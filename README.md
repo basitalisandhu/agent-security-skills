@@ -101,6 +101,38 @@ npm install && npm run build && npm test
 
 Then `/mcp` lists `plugin:agent-security:agent-incidents` with the tools `search_incidents`, `get_incident` and `stats` (`mcp__plugin_agent-security_agent-incidents__<tool>` in permission rules). It reads `data/incidents.json`, a copy of the published `site/incidents.json`; point `AGENT_INCIDENTS_DATA` at a freshly downloaded copy to use newer records.
 
+### Install the server on its own (GitHub Packages)
+
+The same server is published on every release tag, for use outside the plugin, by `publish-github-packages.yml`. Both carry the bundled dataset snapshot; `AGENT_INCIDENTS_DATA` still overrides it.
+
+| Registry | Package | Run |
+|---|---|---|
+| npm (GitHub Packages) | `@basitalisandhu/agent-incidents-mcp` | `npx -y @basitalisandhu/agent-incidents-mcp@0.1.0` |
+| Container (GHCR) | `ghcr.io/basitalisandhu/agent-incidents-mcp` | `docker run --rm -i ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.0` |
+
+GitHub's npm registry asks for a token even for public packages. Point the scope at it in `~/.npmrc`, with a personal access token (classic) that has the `read:packages` scope exported as `GITHUB_TOKEN`:
+
+```
+@basitalisandhu:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
+
+Then add it to Claude Code with either:
+
+```bash
+claude mcp add agent-incidents -- npx -y @basitalisandhu/agent-incidents-mcp@0.1.0
+claude mcp add agent-incidents -- docker run --rm -i ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.0
+```
+
+The image (linux/amd64 and linux/arm64) runs as the non-root `node` user on stdio and opens no port. To serve a newer dataset, mount it: `docker run --rm -i -v "$PWD/incidents.json:/data/incidents.json:ro" -e AGENT_INCIDENTS_DATA=/data/incidents.json ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.0`. Each image is signed with cosign (keyless) and has a build provenance attestation and an SPDX SBOM (attached to the GitHub Release). To verify:
+
+```bash
+cosign verify ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.0 \
+  --certificate-identity-regexp '^https://github.com/basitalisandhu/agent-security-skills/' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+gh attestation verify oci://ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.0 --owner basitalisandhu
+```
+
 ## Compatibility with agentskills.io
 
 Every `SKILL.md` follows the Agent Skills specification: frontmatter with `name` (equal to the directory name, lowercase with hyphens, at most 64 characters) and `description` (at most 1024 characters), optional `license`, `compatibility` and `metadata`, supporting files in `references/` and `scripts/`, and a body under 500 lines with progressive disclosure. The skills directory can be used by any agent that reads that format; only the commands, agents, hooks and `.mcp.json` are Claude Code specific. Skill bodies reference `${CLAUDE_PLUGIN_ROOT}` for script paths; other hosts should substitute the skill's own directory.
@@ -125,6 +157,7 @@ Report security problems privately: see [SECURITY.md](SECURITY.md).
 python3 scripts/validate_plugin.py
 python3 scripts/run_tests.py -v
 cd plugins/agent-security/mcp/incidents-server && npm install && npm run build && npm test
+docker build -t agent-incidents-mcp . && echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"0"}}}' | docker run --rm -i agent-incidents-mcp
 semgrep --metrics=off --test --config plugins/agent-security/skills/semgrep-agentic/rules/agentic-python.yaml plugins/agent-security/skills/semgrep-agentic/rules/tests/agentic-python.py
 claude plugin validate . && claude plugin validate ./plugins/agent-security
 python3 scripts/build_incidents.py path/to/ai-agent-incidents   # refresh the bundled dataset (schema-validated)
