@@ -52,6 +52,45 @@ def frontmatter(path: Path) -> dict[str, str] | None:
     return fm
 
 
+SCALAR_LINE_RE = re.compile(r"^(\s*)(?:- )?([A-Za-z_][\w.-]*):(?:[ \t]+(.*))?$")
+QUOTED_RE = {'"': re.compile(r'"(?:[^"\\]|\\.)*"(?:\s+#.*)?'), "'": re.compile(r"'(?:[^']|'')*'(?:\s+#.*)?")}
+
+
+def scalar_problems(text: str) -> list[str]:
+    """Frontmatter scalars that a strict YAML reader rejects: a plain value containing ': ' or ' #', starting with
+    an indicator character or ending with ':', and a quoted value that is not closed. Returns one message per line."""
+    if not text.startswith("---\n"):
+        return []
+    end = text.find("\n---", 4)
+    if end < 0:
+        return []
+    problems: list[str] = []
+    block_indent: int | None = None
+    for number, line in enumerate(text[4:end].splitlines(), start=2):
+        indent = len(line) - len(line.lstrip())
+        if block_indent is not None:
+            if not line.strip() or indent > block_indent:
+                continue
+            block_indent = None
+        m = SCALAR_LINE_RE.match(line)
+        if not m:
+            continue
+        key, value = m.group(2), (m.group(3) or "").strip()
+        if not value or value[0] in "[{":
+            continue
+        if value[0] in "|>":
+            block_indent = len(m.group(1))
+            continue
+        if value[0] in QUOTED_RE:
+            if not QUOTED_RE[value[0]].fullmatch(value):
+                problems.append(f"line {number}: quoted scalar for '{key}' is not closed")
+        elif value[0] in "&*!%@`,]}?#" or value[:2] in ("- ", ": ") or value == "-":
+            problems.append(f"line {number}: plain scalar for '{key}' starts with a YAML indicator; wrap it in double quotes")
+        elif ": " in value or " #" in value or value.endswith(":"):
+            problems.append(f"line {number}: plain scalar for '{key}' contains ': ' or ' #'; wrap it in double quotes")
+    return problems
+
+
 def check_json_files() -> dict[Path, object]:
     parsed: dict[Path, object] = {}
     for p in sorted(ROOT.rglob("*.json")):
@@ -115,6 +154,8 @@ def check_skills(plugin: Path) -> list[str]:
         if not skill.exists():
             err(f"{d.relative_to(ROOT)}: no SKILL.md")
             continue
+        for problem in scalar_problems(skill.read_text(encoding="utf-8")):
+            err(f"{skill.relative_to(ROOT)}: {problem}")
         fm = frontmatter(skill)
         if fm is None:
             err(f"{skill.relative_to(ROOT)}: no YAML frontmatter")

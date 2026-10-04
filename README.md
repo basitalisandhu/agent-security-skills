@@ -107,8 +107,8 @@ The same server is published on every release tag, for use outside the plugin, b
 
 | Registry | Package | Run |
 |---|---|---|
-| npm (GitHub Packages) | `@basitalisandhu/agent-incidents-mcp` | `npx -y @basitalisandhu/agent-incidents-mcp@0.1.0` |
-| Container (GHCR) | `ghcr.io/basitalisandhu/agent-incidents-mcp` | `docker run --rm -i ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.0` |
+| npm (GitHub Packages) | `@basitalisandhu/agent-incidents-mcp` | `npx -y @basitalisandhu/agent-incidents-mcp@0.1.1` |
+| Container (GHCR) | `ghcr.io/basitalisandhu/agent-incidents-mcp` | `docker run --rm -i ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.1` |
 
 GitHub's npm registry asks for a token even for public packages. Point the scope at it in `~/.npmrc`, with a personal access token (classic) that has the `read:packages` scope exported as `GITHUB_TOKEN`:
 
@@ -120,17 +120,17 @@ GitHub's npm registry asks for a token even for public packages. Point the scope
 Then add it to Claude Code with either:
 
 ```bash
-claude mcp add agent-incidents -- npx -y @basitalisandhu/agent-incidents-mcp@0.1.0
-claude mcp add agent-incidents -- docker run --rm -i ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.0
+claude mcp add agent-incidents -- npx -y @basitalisandhu/agent-incidents-mcp@0.1.1
+claude mcp add agent-incidents -- docker run --rm -i ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.1
 ```
 
-The image (linux/amd64 and linux/arm64) runs as the non-root `node` user on stdio and opens no port. To serve a newer dataset, mount it: `docker run --rm -i -v "$PWD/incidents.json:/data/incidents.json:ro" -e AGENT_INCIDENTS_DATA=/data/incidents.json ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.0`. Each image is signed with cosign (keyless) and has a build provenance attestation and an SPDX SBOM (attached to the GitHub Release). To verify:
+The image (linux/amd64 and linux/arm64) runs as the non-root `node` user on stdio and opens no port. To serve a newer dataset, mount it: `docker run --rm -i -v "$PWD/incidents.json:/data/incidents.json:ro" -e AGENT_INCIDENTS_DATA=/data/incidents.json ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.1`. Each image is signed with cosign (keyless) and has a build provenance attestation and an SPDX SBOM (attached to the GitHub Release). To verify:
 
 ```bash
-cosign verify ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.0 \
+cosign verify ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.1 \
   --certificate-identity-regexp '^https://github.com/basitalisandhu/agent-security-skills/' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
-gh attestation verify oci://ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.0 --owner basitalisandhu
+gh attestation verify oci://ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.1 --owner basitalisandhu
 ```
 
 ## Compatibility with agentskills.io

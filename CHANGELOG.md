@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows Keep
 
 Nothing yet.
 
+## [0.1.1] - 2026-10-04
+
+### Fixed
+
+- Quoted SKILL.md descriptions that contained a colon so the frontmatter parses under strict YAML readers such as the skills CLI; the validator now fails on unquoted scalars with ': ' or ' #'.
+
 ## [0.1.0] - 2026-10-04
 
 First tagged release. The incidents MCP server is published to GitHub Packages, using only the workflow's `GITHUB_TOKEN`:

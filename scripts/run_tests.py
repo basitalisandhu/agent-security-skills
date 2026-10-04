@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run every test_*.py under plugins/ with unittest, by path (the skill directories are not packages).
+"""Run every test_*.py under plugins/ and scripts/ with unittest, by path (the skill directories are not packages).
 
 Usage: python3 scripts/run_tests.py [-v]
 """
@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def main() -> int:
     tests = sorted(p for p in (ROOT / "plugins").rglob("test_*.py") if "node_modules" not in p.parts)
+    tests += sorted((ROOT / "scripts").glob("test_*.py"))
     if not tests:
         print("no tests found")
         return 1
