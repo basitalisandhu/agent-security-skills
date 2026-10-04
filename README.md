@@ -36,6 +36,8 @@ Requirements: Python 3.11 or newer on `PATH` as `python3` (hooks and skill scrip
 
 After installing, skills appear as `/agent-security:<skill>`, commands as `/agent-security:audit`, `/agent-security:threat-model` and `/agent-security:incidents`, and the agent as `@agent-agent-security:agent-security-reviewer`.
 
+This pack is also part of [claude-skills](https://github.com/basitalisandhu/claude-skills), which holds every skill I maintain as one marketplace: `/plugin marketplace add basitalisandhu/claude-skills`.
+
 ## What is inside
 
 ```text
@@ -196,6 +198,7 @@ More tools by the same author: https://github.com/basitalisandhu
 | [ai-agent-incidents](https://github.com/basitalisandhu/ai-agent-incidents) | Open, structured dataset of publicly documented AI-agent security incidents: JSON + schema, mapped to OWASP and MITRE ATLAS, with a [browsable site](https://basitalisandhu.github.io/ai-agent-incidents/). |
 | [agentic-semgrep-rules](https://github.com/basitalisandhu/agentic-semgrep-rules) | Semgrep rule pack for insecure agent code: unbounded tool permissions, eval of model output, SSRF through tool URLs, prompt interpolation, MCP servers without auth. |
 | [agent-threat-model](https://github.com/basitalisandhu/agent-threat-model) | CLI that turns a YAML description of an agent system into a STRIDE + OWASP Agentic threat model, control checklist and Mermaid diagram. |
+| [All packs in one repository: claude-skills](https://github.com/basitalisandhu/claude-skills) | All packs in one repository; this plugin's pages are at https://basitalisandhu.github.io/claude-skills/plugins/agent-security/ |
 
 ## Licence
 
