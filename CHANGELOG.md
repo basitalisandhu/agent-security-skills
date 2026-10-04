@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows Keep
 
 ## [Unreleased]
 
+### Changed
+
+- Removed the umbrella branding; this project stands alone and links its sibling repositories directly.
+
+### Removed
+
+- Removed the broker-specific policy skill and integrator agent.
+
 ## [0.1.0] - 2026-10-04
 
 First tagged release. The incidents MCP server is published to GitHub Packages, using only the workflow's `GITHUB_TOKEN`:

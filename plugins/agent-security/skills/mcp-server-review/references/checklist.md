@@ -19,7 +19,7 @@ Severity in brackets is for a `fail`. "Verify" says what to look at in code; "Fi
 | Does every remote request carry a credential the server verifies (OAuth 2.1 bearer, API key)? | Auth middleware; `requireBearerAuth`; token verification against the issuer | Add auth before any tool handler runs |
 | Are tokens validated for audience (this server), expiry and signature, not just presence? | Verifier code | Check `aud`, `exp`, signature; reject tokens issued for other servers (no token passthrough) |
 | Is authorisation per tool, not per server (read tools vs write tools)? | Scope checks in handlers | Map scopes to tools; deny by default |
-| Does the server never forward the client's token upstream? | Outbound calls | Use the server's own credential for upstreams; or a broker lease (Masoon) |
+| Does the server never forward the client's token upstream? | Outbound calls | Use the server's own credential for upstreams; or a credential broker lease |
 
 ## 3. Tool input validation [high]
 
@@ -46,7 +46,7 @@ Severity in brackets is for a `fail`. "Verify" says what to look at in code; "Fi
 
 | Question | Verify | Fix |
 |---|---|---|
-| Credentials come from the environment or a broker, never from source or config literals? | `grep` for key formats; `agent-config-audit` SEC-001 | Env or Masoon lease; rotate anything found |
+| Credentials come from the environment or a broker, never from source or config literals? | `grep` for key formats; `agent-config-audit` SEC-001 | Env or a credential broker lease; rotate anything found |
 | Secrets never appear in tool results, error messages or logs? | Error handlers, `console.error`, logging calls that print config or env | Redact; log identifiers not values |
 | The server does not expose a tool that reads arbitrary env vars or files outside its root? | Tool list | Remove or confine |
 | Credentials are scoped to the server's job (read-only token for a read-only server)? | Upstream token scopes | Narrow; split servers by write capability |

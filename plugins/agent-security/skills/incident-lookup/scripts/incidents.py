@@ -51,11 +51,11 @@ LIST_FIELDS = {"vendor": ("affected", "vendors"), "product": ("affected", "produ
                "tag": ("tags", None)}
 COLUMNS = ["id", "date", "name", "vector", "channel_in", "authority", "outcome", "owasp_agentic", "url"]
 
-# Controls that address each attack vector, phrased for a design review, naming the sibling project that implements it.
+# Controls that address each attack vector, phrased for a design review.
 CONTROLS = {
     "indirect-injection": [
-        "Provenance rule: designators (recipients, URLs, account ids) in a consequential call must come from the user's request or typed tool fields, never from third-party free text (llm-agent-control-plane PEP).",
-        "Approval gate on consequential tools with short-lived, single-use tokens (Masoon Broker requires_approval + single_use).",
+        "Provenance rule: designators (recipients, URLs, account ids) in a consequential call must come from the user's request or typed tool fields, never from third-party free text (a policy enforcement point in the tool executor).",
+        "Approval gate on consequential tools with short-lived, single-use tokens (a credential broker with approval and single-use settings).",
         "Treat every tool result as untrusted: mark it, never let it widen the agent's permissions.",
     ],
     "direct-injection": [
@@ -63,7 +63,7 @@ CONTROLS = {
         "Deterministic policy outside the model for anything consequential; the model is not the enforcement point.",
     ],
     "nhi-secrets": [
-        "Give agents brokered, scoped, short-TTL credentials instead of raw keys (Masoon Broker proxy and lease).",
+        "Give agents brokered, scoped, short-TTL credentials instead of raw keys (a credential broker that proxies calls or leases tokens).",
         "Secret scanning on agent config and instruction files (agent-config-audit); block secret printing in the shell (block-secret-exposure hook).",
     ],
     "supply-chain": [
@@ -72,11 +72,11 @@ CONTROLS = {
     ],
     "excessive-agency": [
         "Least-privilege scopes per agent (`connector:METHOD:/path`), separate read and write connectors.",
-        "Kill switch and per-agent key rotation (Masoon Broker kill, rotate-key).",
+        "Kill switch and per-agent key rotation.",
     ],
     "autonomous-ops": [
         "Human approval for destructive or irreversible actions; sandbox the workspace; no production credentials in dev agents.",
-        "Tamper-evident audit log of every tool call with purpose (Masoon audit chain).",
+        "Tamper-evident audit log of every tool call with purpose (for example a hash chain).",
     ],
     "exploitation": ["Treat agent frameworks and MCP servers as internet-facing software: patch cadence, auth on every endpoint, no 0.0.0.0 binds without auth."],
     "exposure/misconfig": ["Authenticate every agent-facing service; audit permissions files for broad allow rules (agent-config-audit)."],

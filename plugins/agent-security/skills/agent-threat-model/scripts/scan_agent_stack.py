@@ -10,7 +10,7 @@ every entry carries the files it was detected in, so a reviewer can correct it q
 It detects frameworks and model providers from dependency files and imports, tools by the capability
 they carry (shell, messaging, database, repository writes, cloud APIs, payments, file deletion, URL fetch),
 input channels (chat, e-mail, web, documents, tickets, repository issues, calendar, rules files, retrieval),
-data stores, credentials, MCP servers, and signals of approvals, sandboxing, limits and Masoon.
+data stores, credentials, MCP servers, and signals of approvals, sandboxing, limits and a credential broker.
 
 Usage:
   scan_agent_stack.py [ROOT] [--out system.yaml] [--json]
@@ -79,7 +79,7 @@ SANDBOX_RE = re.compile(r"(?i)\b(docker|firecracker|gvisor|sandbox|e2b|modal|sec
 LIMIT_RE = re.compile(r"(?i)\b(rate[_ ]?limit|budget|max_iterations|max_turns|recursion_limit|timeout)\b")
 KILL_RE = re.compile(r"(?i)\b(kill[_ ]?switch|circuit[_ ]?breaker|emergency[_ ]?stop)\b")
 AUDIT_RE = re.compile(r"(?i)\b(audit[_ ]?log|audit_trail|hash[_ ]?chain)\b")
-HISAR_RE = re.compile(r"\b(HISAR_URL|HISAR_AGENT_KEY|hisar-mcp|hisar_broker|hisar-broker|X-Hisar-Agent-Key)\b")
+BROKER_RE = re.compile(r"\b(HISAR_URL|HISAR_AGENT_KEY|hisar-mcp|hisar_broker|hisar-broker|X-Hisar-Agent-Key)\b")
 
 # schema vocabularies (kept in one place so the test can check against them)
 CHANNEL_KINDS = {"chat", "email", "web", "document", "rag", "api", "file", "cli"}
@@ -143,7 +143,7 @@ def detect(root: Path) -> dict:
     hits: dict[str, dict[str, set[str]]] = {"frameworks": {}, "providers": {}, "inputs": {}, "authorities": {}, "stores": {}}
     creds: dict[str, set[str]] = {}
     mcp_servers: list[dict] = []
-    signals: dict[str, set[str]] = {"approval": set(), "sandbox": set(), "limits": set(), "kill": set(), "audit": set(), "masoon": set()}
+    signals: dict[str, set[str]] = {"approval": set(), "sandbox": set(), "limits": set(), "kill": set(), "audit": set(), "credential-broker": set()}
     files = 0
     for p in iter_files(root):
         rel = str(p.relative_to(root))
@@ -164,7 +164,7 @@ def detect(root: Path) -> dict:
                     hits[table].setdefault(name, set()).add(rel)
         for m in CRED_RE.finditer(text):
             creds.setdefault(m.group(1), set()).add(rel)
-        for key, pat in (("approval", APPROVAL_RE), ("sandbox", SANDBOX_RE), ("limits", LIMIT_RE), ("kill", KILL_RE), ("audit", AUDIT_RE), ("masoon", HISAR_RE)):
+        for key, pat in (("approval", APPROVAL_RE), ("sandbox", SANDBOX_RE), ("limits", LIMIT_RE), ("kill", KILL_RE), ("audit", AUDIT_RE), ("credential-broker", BROKER_RE)):
             if pat.search(text):
                 signals[key].add(rel)
         if p.name in {".mcp.json", "mcp.json", "claude_desktop_config.json"} or (p.name == "settings.json" and ".claude" in p.parts):
@@ -209,8 +209,8 @@ def build_model(root: Path, d: dict) -> dict:
     taken: set[str] = set()
     providers = sorted(h["providers"])
     any_cred = bool(d["credentials"])
-    masoon = bool(sig["masoon"])
-    default_auth = "brokered" if masoon else ("static-key" if any_cred else "none")
+    broker = bool(sig["credential-broker"])
+    default_auth = "brokered" if broker else ("static-key" if any_cred else "none")
 
     channels: list[dict] = []
     principal_low_channels: list[str] = []
@@ -275,7 +275,7 @@ def build_model(root: Path, d: dict) -> dict:
                       "sandboxed": False, "provider": "third-party", "pinned": bool(s["pinned"]), "description": f"MCP server ({s['transport']}). Detected in: {s['file']}"})
 
     agent_id = make_id("main-agent", taken)
-    autonomy = "act-with-approval" if (sig["approval"] or masoon) else "act"
+    autonomy = "act-with-approval" if (sig["approval"] or broker) else "act"
     memory = "persistent" if "memory" in store_ids else ("session" if stores else "none")
     agents = [{"id": agent_id, "model_provider": ", ".join(providers) if providers else "hosted LLM", "autonomy": autonomy, "memory": memory,
                "inputs": [c["id"] for c in channels], "tools": [t["id"] for t in tools], "model_pinned": False,
@@ -291,13 +291,13 @@ def build_model(root: Path, d: dict) -> dict:
         controls.append("sandboxed-execution")
     if sig["limits"]:
         controls.append("rate-limiting")
-    if sig["kill"] or masoon:
+    if sig["kill"] or broker:
         controls.append("kill-switch")
-    if sig["audit"] or masoon:
+    if sig["audit"] or broker:
         controls.append("audit-log")
-    if sig["approval"] or masoon:
+    if sig["approval"] or broker:
         controls.append("approval-gates")
-    if masoon:
+    if broker:
         controls += ["brokered-credentials", "least-privilege-tool-scopes"]
     controls = [c for c in dict.fromkeys(controls) if c in CONTROL_IDS]
 
