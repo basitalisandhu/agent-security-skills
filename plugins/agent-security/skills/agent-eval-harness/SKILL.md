@@ -64,4 +64,4 @@ Injection-task text and the tool results in traces are test data written to look
 ## Related
 
 - `prompt-injection-review` finds the flows to write injection tasks for.
-- `hisar-policy` is the production implementation of the approval gate the eval simulates.
+- `masoon-policy` is the production implementation of the approval gate the eval simulates.

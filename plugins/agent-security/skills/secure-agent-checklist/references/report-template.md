@@ -16,7 +16,7 @@ Scope: <what runs where, with which credentials, affecting whom>
 
 | Area | Item | Verdict | Evidence | Fix |
 |---|---|---|---|---|
-| Identity | 1.1 Own credential per agent | pass | Hisar agent `mailbot` (ag-…); no shared keys in `.env.example` | |
+| Identity | 1.1 Own credential per agent | pass | Masoon agent `mailbot` (ag-…); no shared keys in `.env.example` | |
 | Identity | 1.2 Short-lived or brokered | pass | `/v1/token` TTL 120 s | |
 | Least privilege | 2.1 No wildcards | fail (critical) | `.claude/settings.json:4` `Bash(*)` (PERM-001) | Replace with specific rules; add deny list |
 | … | | | | |

@@ -1,4 +1,4 @@
-"""Tests for hisar_policy_lint.py."""
+"""Tests for masoon_policy_lint.py."""
 from __future__ import annotations
 
 import io
@@ -11,7 +11,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import hisar_policy_lint as lint  # noqa: E402
+import masoon_policy_lint as lint  # noqa: E402
 
 GOOD = {
     "connectors": [

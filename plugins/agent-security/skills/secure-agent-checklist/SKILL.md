@@ -49,10 +49,10 @@ See [references/report-template.md](references/report-template.md). Summary shap
 
 | Area | Item | Verdict | Evidence | Fix |
 |---|---|---|---|---|
-| Identity | Each agent has its own credential | fail | OPENAI_API_KEY shared by 3 services (.env.example:4) | Register one Hisar agent per service |
+| Identity | Each agent has its own credential | fail | OPENAI_API_KEY shared by 3 services (.env.example:4) | Register one Masoon agent per service |
 ```
 
 ## Related
 
-- `hisar-policy` is the fastest way to turn fails in Identity, Least privilege, Approvals, Audit and Kill switch into passes.
+- `masoon-policy` is the fastest way to turn fails in Identity, Least privilege, Approvals, Audit and Kill switch into passes.
 - `agent-eval-harness` provides the evidence for the Evals area.

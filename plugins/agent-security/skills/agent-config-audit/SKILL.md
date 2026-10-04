@@ -5,7 +5,7 @@ license: MIT
 compatibility: Python 3.11 or newer on PATH as python3. No network access needed.
 metadata:
   author: Muhammad Basit Ali
-  project: Hisar, open-source trust infrastructure for AI agents
+  project: Masoon, open-source trust infrastructure for AI agents
 ---
 
 # Agent configuration audit
@@ -83,4 +83,4 @@ Use `--format markdown --output agent-config-audit.md` when the user wants a fil
 
 - `secure-agent-checklist` for the pre-ship review that uses these findings as evidence.
 - `semgrep-agentic` for the same configuration checks as Semgrep rules in CI.
-- `hisar-policy` when the fix is "replace the raw credential with a brokered, scoped one".
+- `masoon-policy` when the fix is "replace the raw credential with a brokered, scoped one".

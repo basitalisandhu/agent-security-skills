@@ -6,8 +6,8 @@ Verdicts: `pass` (verified with evidence), `fail` (verified absent, or could not
 
 | # | Item | Verify by | Evidence to cite |
 |---|---|---|---|
-| 1.1 [high] | Each agent (and each deployment of it) has its own credential; none is shared with humans or other services | List every credential the agent holds and where else it is used | env files, secret manager entries, Hisar agent list |
-| 1.2 [high] | Credentials are short-lived or brokered, not long-lived API keys in the agent's environment | Check whether tokens expire in minutes (Hisar `/v1/token`, STS, OAuth) or never | token issuance code, broker policies |
+| 1.1 [high] | Each agent (and each deployment of it) has its own credential; none is shared with humans or other services | List every credential the agent holds and where else it is used | env files, secret manager entries, Masoon agent list |
+| 1.2 [high] | Credentials are short-lived or brokered, not long-lived API keys in the agent's environment | Check whether tokens expire in minutes (Masoon `/v1/token`, STS, OAuth) or never | token issuance code, broker policies |
 | 1.3 [medium] | The agent's identity is visible downstream (user-agent, principal, audit `sub`) | Make one call and find it in the upstream's log | log excerpt |
 | 1.4 [medium] | Rotation is one command and was exercised once | Rotate in staging | runbook line, `rotate-key` output |
 
@@ -15,11 +15,11 @@ Verdicts: `pass` (verified with evidence), `fail` (verified absent, or could not
 
 | # | Item | Verify by | Evidence |
 |---|---|---|---|
-| 2.1 [critical] | No wildcard permission: no `Bash(*)`, `crm:*`, `*`, admin tokens, root filesystem mounts | `agent-config-audit` PERM-*, MCP-007; Hisar linter `wildcard_policy` | finding ids |
+| 2.1 [critical] | No wildcard permission: no `Bash(*)`, `crm:*`, `*`, admin tokens, root filesystem mounts | `agent-config-audit` PERM-*, MCP-007; Masoon linter `wildcard_policy` | finding ids |
 | 2.2 [high] | Reads and writes are separate scopes or connectors; writes are the exception | Count scopes per method | policy table |
 | 2.3 [high] | Each tool exposes the minimum arguments; destructive tools are absent unless required | `prompt-injection-review` inventory: consequential tools list | inventory table |
 | 2.4 [medium] | Network egress is allowlisted (domains, no raw IPs, HTTPS only) | Egress config, `warn-insecure-fetch` hook enabled, WebFetch domain rules | config excerpt |
-| 2.5 [medium] | The agent cannot modify its own instructions, hooks or permissions | Deny rules on `.claude/`, `.git/hooks`, instruction files; Hisar `cc:Write:<project>/.claude/*` gated | deny list |
+| 2.5 [medium] | The agent cannot modify its own instructions, hooks or permissions | Deny rules on `.claude/`, `.git/hooks`, instruction files; Masoon `cc:Write:<project>/.claude/*` gated | deny list |
 
 ## 3. Approvals
 
@@ -28,7 +28,7 @@ Verdicts: `pass` (verified with evidence), `fail` (verified absent, or could not
 | 3.1 [critical] | Every consequential action (send, pay, delete, deploy, push, exec outside sandbox) needs a human or a deterministic policy before it runs | Map consequential tools to the gate that fronts them | tool to gate table |
 | 3.2 [high] | The approver sees who, what, why (purpose) and the exact arguments | Trigger one approval in staging | screenshot or request JSON |
 | 3.3 [high] | Designators in consequential calls (recipients, URLs, amounts, ids) are sourced from the user's request or typed tool results, never only from third-party text | Provenance rule in the PEP or executor; eval evidence | `prompt-injection-review` findings, eval ASR |
-| 3.4 [medium] | Approvals are single-use where the action is one-off; tokens do not outlive the task | Hisar `single_use`, TTLs under 10 min for writes | policy table |
+| 3.4 [medium] | Approvals are single-use where the action is one-off; tokens do not outlive the task | Masoon `single_use`, TTLs under 10 min for writes | policy table |
 | 3.5 [medium] | The agent cannot approve its own requests (separate roles) | Operator roles | operator list |
 
 ## 4. Sandboxing
@@ -46,14 +46,14 @@ Verdicts: `pass` (verified with evidence), `fail` (verified absent, or could not
 |---|---|---|---|
 | 5.1 [high] | Every tool call is logged with agent id, tool, arguments summary, decision and purpose | Read one day of logs | log excerpt |
 | 5.2 [high] | Logs never contain secrets or full file contents | Grep logs for key formats | grep output |
-| 5.3 [medium] | The log is tamper-evident or shipped off the host (hash chain, signed checkpoints, forwarder) | Hisar `/audit/verify`, SIEM forwarder | verify output |
+| 5.3 [medium] | The log is tamper-evident or shipped off the host (hash chain, signed checkpoints, forwarder) | Masoon `/audit/verify`, SIEM forwarder | verify output |
 | 5.4 [medium] | Someone reads the log: alert on denials, kills, approvals outside hours | Alert rule | rule |
 
 ## 6. Kill switch
 
 | # | Item | Verify by | Evidence |
 |---|---|---|---|
-| 6.1 [critical] | One action stops the agent and revokes its live tokens, and it was tested | Hisar `POST /agents/:id/kill`, feature flag, revocation list | runbook, test date |
+| 6.1 [critical] | One action stops the agent and revokes its live tokens, and it was tested | Masoon `POST /agents/:id/kill`, feature flag, revocation list | runbook, test date |
 | 6.2 [high] | The person on call knows the action and has the right to take it | Runbook, role | runbook link |
 | 6.3 [medium] | Compromise of the agent key is recoverable: kill, rotate, redeploy, upstream rotation for leased secrets | Runbook | runbook |
 
