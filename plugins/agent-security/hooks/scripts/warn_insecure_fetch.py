@@ -150,6 +150,8 @@ def _executed_fetch(command: str, depth: int = 0) -> bool:
     if depth >= 3:
         return False
     quote = None
+    context = list(command)
+    command_start = 0
     i = 0
     while i < len(command):
         char = command[i]
@@ -160,6 +162,8 @@ def _executed_fetch(command: str, depth: int = 0) -> bool:
             quote = None if quote == char else char
             i += 1
             continue
+        if quote is None and char in ";|&\n":
+            command_start = i + 1
         process = quote is None and command.startswith("<(", i)
         substitution = quote != "'" and command.startswith("$(", i)
         backtick = quote != "'" and char == "`"
@@ -190,13 +194,16 @@ def _executed_fetch(command: str, depth: int = 0) -> bool:
                 continue
             end -= 1
             inner = command[i + 2:end]
-        prefix = segments(command[:i])
+        # Earlier substitutions are arguments, not the enclosing executor.
+        prefix_text = "".join(context[command_start:i])
+        prefix = segments(prefix_text)
         executor = prefix[-1].program if prefix else ""
         executes = executor in INTERPRETERS | {"."}
-        if not process and not command[:i].strip():
+        if not process and not prefix_text.strip():
             executes = True  # substitution in the command-name position
         if executes and any(seg.program in FETCHERS for seg in segments(inner)):
             return True
+        context[i:end + 1] = " " * (end + 1 - i)
         i = end + 1
     # Quoted shell programs may expand substitutions only when the inner shell runs.
     for seg in segments(command):

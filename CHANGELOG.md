@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows Keep
 
 ## [Unreleased]
 
+### Added
+
 - Warn when fetched content is executed through process or command substitution,
   while leaving non-executing diff and version-read substitutions alone.
 
