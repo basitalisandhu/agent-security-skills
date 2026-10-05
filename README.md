@@ -1,12 +1,14 @@
 # agent-security-skills
 
-**Claude Code security plugin and agent skills for securing LLM agents: threat modelling, configuration audits, prompt injection review, MCP server review and incident lookup.**
+**Claude Code security plugin and agent skills for securing LLM agents: threat modelling, configuration audits, prompt injection review, MCP server review, incident lookup and agent session log review.**
 
 agent-security-skills is a Claude Code plugin marketplace and an [agentskills.io](https://agentskills.io)-compatible skill pack for people who build or run LLM agents against real APIs, MCP servers and codebases: security engineers reviewing an agent before it ships, and developers who want that review inside the tool they already use. Each skill is a procedure with a tested script or a fixed checklist, so two reviewers reach the same verdict and the evidence is a file, a line or a command output.
 
-Eight skills (each with a tested script or a checklist), three slash commands, a subagent, two guard hooks for `Bash`, and an optional MCP server over the [ai-agent-incidents](https://github.com/basitalisandhu/ai-agent-incidents) dataset (80 documented events mapped to OWASP Agentic, OWASP LLM and MITRE ATLAS). No telemetry, no network calls except the documented, opt-in dataset refresh.
+Nine skills (each with a tested script or a checklist), three slash commands, a subagent, two guard hooks for `Bash`, and an optional MCP server over the [ai-agent-incidents](https://github.com/basitalisandhu/ai-agent-incidents) dataset (80 documented events mapped to OWASP Agentic, OWASP LLM and MITRE ATLAS). No telemetry, no network calls except the documented, opt-in dataset refresh.
 
-Typical questions it answers: "is this MCP server safe to install?", "does this agent have the lethal trifecta?" and "could a malicious skill or plugin in this repository take over my agent?".
+Typical questions it answers: "is this MCP server safe to install?", "does this agent have the lethal trifecta?", "could a malicious skill or plugin in this repository take over my agent?" and "what did the agent actually do in this session?".
+
+Find this when you search for: AI agent session log review, Claude Code transcript audit, agent observability for actions outside policy, detecting prompt injection in agent logs, agent data exfiltration check.
 
 ## When to use this
 
@@ -18,6 +20,7 @@ Typical questions it answers: "is this MCP server safe to install?", "does this 
 - Is this MCP server safe to install? `mcp-server-review` on its source, then `agent-config-audit` on the config that launches it
 - Does this agent have the lethal trifecta (private data, untrusted content and a way to send data out)? `prompt-injection-review`
 - Skill supply chain: does a skill, plugin or hook I am about to install carry a malicious instruction, a secret or an unpinned server? `agent-config-audit`
+- What did the agent actually do in a session: did a fetched page steer a tool call, was a denied action retried another way, did data or a secret leave, did it loop? `agent-session-log-review`
 
 ## Install
 
@@ -48,7 +51,7 @@ This pack is also part of [claude-skills](https://github.com/basitalisandhu/clau
 ```text
 plugins/agent-security/
 ├── .claude-plugin/plugin.json      plugin manifest
-├── skills/<name>/SKILL.md          eight skills, each with references/ or scripts/ (and tests)
+├── skills/<name>/SKILL.md          nine skills, each with references/ or scripts/ (and tests)
 ├── commands/                       audit.md, threat-model.md, incidents.md
 ├── agents/                         agent-security-reviewer.md
 ├── hooks/hooks.json                two PreToolUse hooks on Bash, scripts in hooks/scripts/
@@ -68,6 +71,7 @@ plugins/agent-security/
 | `incident-lookup` | "has this happened before", examples, citations for a review | Filtered incidents (vector, authority, vendor, framework, OWASP Agentic, OWASP LLM, ATLAS, tags), stats, ranked precedents with the controls that would have helped (`incidents.py`, offline fallback) |
 | `secure-agent-checklist` | "is this safe to ship", release gate, go/no-go | Markdown report with pass, fail or n.a. across identity, least privilege, approvals, sandboxing, audit, kill switch, supply chain, evals |
 | `agent-eval-harness` | measure prompt-injection resistance, build a security eval, ASR numbers | AgentDojo-style runner template (`eval_runner.py`) with policies, demo suite, tests, and the path to the real benchmark |
+| `agent-session-log-review` | "what did the agent actually do in this session?", after a suspicious run, spot checks of unattended agents | Timeline of one session (Claude Code transcript, chat messages or event lines) with structural flags for injection taking effect, denied-then-retried actions, destructive commands, writes outside the root, egress, secrets and loops (`review_session_log.py`, Markdown or JSON, secrets masked) |
 | `semgrep-agentic` | scan agent code, add rules to CI, the code step of an audit | Runs the 36-rule [agentic-semgrep-rules](https://github.com/basitalisandhu/agentic-semgrep-rules) pack, 16 bundled rules as the offline fallback (with the upstream id mapping), config rules, triage guide, CI snippet |
 
 ## Commands
@@ -112,8 +116,8 @@ The same server is published on every release tag, for use outside the plugin, b
 
 | Registry | Package | Run |
 |---|---|---|
-| npm (GitHub Packages) | `@basitalisandhu/agent-incidents-mcp` | `npx -y @basitalisandhu/agent-incidents-mcp@0.1.2` |
-| Container (GHCR) | `ghcr.io/basitalisandhu/agent-incidents-mcp` | `docker run --rm -i ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.2` |
+| npm (GitHub Packages) | `@basitalisandhu/agent-incidents-mcp` | `npx -y @basitalisandhu/agent-incidents-mcp@0.2.0` |
+| Container (GHCR) | `ghcr.io/basitalisandhu/agent-incidents-mcp` | `docker run --rm -i ghcr.io/basitalisandhu/agent-incidents-mcp:0.2.0` |
 
 GitHub's npm registry asks for a token even for public packages. Point the scope at it in `~/.npmrc`, with a personal access token (classic) that has the `read:packages` scope exported as `GITHUB_TOKEN`:
 
@@ -125,17 +129,17 @@ GitHub's npm registry asks for a token even for public packages. Point the scope
 Then add it to Claude Code with either:
 
 ```bash
-claude mcp add agent-incidents -- npx -y @basitalisandhu/agent-incidents-mcp@0.1.2
-claude mcp add agent-incidents -- docker run --rm -i ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.2
+claude mcp add agent-incidents -- npx -y @basitalisandhu/agent-incidents-mcp@0.2.0
+claude mcp add agent-incidents -- docker run --rm -i ghcr.io/basitalisandhu/agent-incidents-mcp:0.2.0
 ```
 
-The image (linux/amd64 and linux/arm64) runs as the non-root `node` user on stdio and opens no port. To serve a newer dataset, mount it: `docker run --rm -i -v "$PWD/incidents.json:/data/incidents.json:ro" -e AGENT_INCIDENTS_DATA=/data/incidents.json ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.2`. Each image is signed with cosign (keyless) and has a build provenance attestation and an SPDX SBOM (attached to the GitHub Release). To verify:
+The image (linux/amd64 and linux/arm64) runs as the non-root `node` user on stdio and opens no port. To serve a newer dataset, mount it: `docker run --rm -i -v "$PWD/incidents.json:/data/incidents.json:ro" -e AGENT_INCIDENTS_DATA=/data/incidents.json ghcr.io/basitalisandhu/agent-incidents-mcp:0.2.0`. Each image is signed with cosign (keyless) and has a build provenance attestation and an SPDX SBOM (attached to the GitHub Release). To verify:
 
 ```bash
-cosign verify ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.2 \
+cosign verify ghcr.io/basitalisandhu/agent-incidents-mcp:0.2.0 \
   --certificate-identity-regexp '^https://github.com/basitalisandhu/agent-security-skills/' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
-gh attestation verify oci://ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.2 --owner basitalisandhu
+gh attestation verify oci://ghcr.io/basitalisandhu/agent-incidents-mcp:0.2.0 --owner basitalisandhu
 ```
 
 ## Compatibility with agentskills.io
@@ -173,7 +177,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the ground rules (standard library on
 ## Frequently asked questions
 
 **Is there a Claude Code plugin for security reviews of AI agents?**
-Yes, this one. `agent-security` is a Claude Code plugin with eight skills that do real work from inside the editor: threat model an agent codebase (drafting a system description for `agent-threat-model` and running it), audit `.claude/`, `CLAUDE.md`, `.cursor/`, `.mcp.json` and desktop MCP configs for permissions, hooks, unpinned servers and secrets, review an MCP server against a checklist, trace prompt injection from untrusted inputs to tool calls, look up precedents in the incident dataset, build a security eval, and run the 36-rule agentic-semgrep-rules pack. Three slash commands (`/agent-security:audit`, `/agent-security:threat-model`, `/agent-security:incidents`) chain the skills into reports, and a read-only reviewer subagent runs them without write access. The skills follow the agentskills.io format, so other assistants that read `SKILL.md` can load them too.
+Yes, this one. `agent-security` is a Claude Code plugin with nine skills that do real work from inside the editor: threat model an agent codebase (drafting a system description for `agent-threat-model` and running it), audit `.claude/`, `CLAUDE.md`, `.cursor/`, `.mcp.json` and desktop MCP configs for permissions, hooks, unpinned servers and secrets, review an MCP server against a checklist, trace prompt injection from untrusted inputs to tool calls, look up precedents in the incident dataset, build a security eval, run the 36-rule agentic-semgrep-rules pack, and review a session log for what the agent actually did. Three slash commands (`/agent-security:audit`, `/agent-security:threat-model`, `/agent-security:incidents`) chain the skills into reports, and a read-only reviewer subagent runs them without write access. The skills follow the agentskills.io format, so other assistants that read `SKILL.md` can load them too.
 
 **Does it send my code anywhere?**
 No. Skills are Markdown instructions plus standard-library Python scripts that read files under the directory you point them at and write only where you pass `--out`. The hooks read the tool call on stdin and print a decision. The MCP server reads one JSON file, listens on nothing and fetches nothing. The one network call in the whole plugin is optional: `incidents.py` may GET the published dataset JSON to refresh its cache (10 second timeout, 20 MB cap, skipped with `--offline`, and never required because the bundled snapshot is the fallback). There is no telemetry, and the repository audits itself in CI with its own scanner.

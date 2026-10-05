@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows Keep
 
 Nothing yet.
 
+## [0.2.0] - 2026-10-05
+
+### Added
+
+- `agent-session-log-review`: `review_session_log.py` reads one agent session (Claude Code transcript lines, a chat messages export or generic event lines), normalises it into prompts, tool calls, tool results and messages, and flags events with fixed structural rules: a host, URL or address that reached a consequential tool call only through untrusted tool results (`INJ-PROVENANCE`), role markers or hidden characters in untrusted results, a denied action retried with a different tool, destructive command shapes, writes outside `--root`, network calls to hosts not on `--allow-host` (higher when carrying data), secret-shaped strings anywhere in the session, Markdown images that carry a query string to an outside host, repeated calls and error streaks. Prints a flagged timeline as Markdown or JSON, masks secrets always and tokenises e-mail addresses and home folder names with `--redact`. Exit codes 0, 1 (flags to review) and 2 (bad input). 14 tests with synthetic logs and no attack text.
+
+### Changed
+
+- Version 0.2.0 in the marketplace, plugin manifest, MCP server package, `server.json`, server and scanner version constants and README examples; the READMEs list the new skill and the searches it answers.
+
 ## [0.1.2] - 2026-10-05
 
 ### Changed
