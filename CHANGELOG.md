@@ -4,7 +4,8 @@ All notable changes to this project are documented here. The format follows Keep
 
 ## [Unreleased]
 
-Nothing yet.
+- Warn when fetched content is executed through process or command substitution,
+  while leaving non-executing diff and version-read substitutions alone.
 
 ## [0.1.1] - 2026-10-04
 
