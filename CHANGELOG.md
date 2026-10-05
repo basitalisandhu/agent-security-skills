@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows Keep
 
 Nothing yet.
 
+## [0.1.2] - 2026-10-05
+
+### Changed
+
+- Rewrote all eight skill descriptions to under 500 characters: each starts with a verb, states the goal before the mechanism, carries one quoted phrase a user would type, a "Use when ..." sentence and a "Not for ..." boundary (the agent-security skills had none).
+- Added a `## Limits` section to the seven skills that lacked one, and a Related section to `incident-lookup`.
+- `agent-config-audit` names its boundary with `agent-context-writer` in repo-engineering-skills.
+- Test scripts open text files with `encoding="utf-8"`, and CI runs the Python tests on `windows-latest` as well as Ubuntu and macOS.
+- `audit_agent_config.py`, `scan_agent_stack.py` and `tool_inventory.py` report relative paths with forward slashes on every platform (Windows printed backslashes).
+- The README lists three more questions the pack answers (MCP server safe to install, the lethal trifecta, skill supply chain).
+- `scripts/validate_plugin.py` now fails when a description is over 600 characters, is not double-quoted, or lacks "Use " or "Not for", and when a SKILL.md has no `## Limits` section; tests cover each rule.
+- Version 0.1.2 in the marketplace, plugin manifest, MCP server package, `server.json`, server and scanner version constants and README examples.
+
 ## [0.1.1] - 2026-10-04
 
 ### Fixed
