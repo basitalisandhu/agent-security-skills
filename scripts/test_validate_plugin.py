@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import unittest
 from pathlib import Path
 
@@ -65,6 +66,49 @@ class ScalarProblemsTest(unittest.TestCase):
         for path in skills:
             with self.subTest(skill=str(path.relative_to(ROOT))):
                 self.assertEqual(validator.scalar_problems(path.read_text(encoding="utf-8")), [])
+
+
+def quoted(desc: str) -> str:
+    return "---\nname: x\ndescription: " + json.dumps(desc) + "\n---\n\nBody.\n"
+
+
+GOOD = 'Check a thing for a reason. Use when asked "is this fine?". Not for other things.'
+
+
+class DescriptionRulesTest(unittest.TestCase):
+    def test_good_description_passes(self):
+        self.assertEqual(validator.description_problems(quoted(GOOD)), [])
+
+    def test_description_over_600_chars_is_rejected(self):
+        problems = validator.description_problems(quoted(GOOD + " " + "x" * 600))
+        self.assertEqual(len(problems), 1)
+        self.assertIn("house limit 600", problems[0])
+
+    def test_description_without_use_or_not_for_is_rejected(self):
+        self.assertEqual(len(validator.description_problems(quoted("Check a thing. Not for other things."))), 1)
+        self.assertEqual(len(validator.description_problems(quoted("Check a thing. Use when asked."))), 1)
+
+    def test_description_must_be_double_quoted(self):
+        for line in ("description: Check a thing. Use when asked. Not for other things.",
+                     "description: 'Check a thing. Use when asked. Not for other things.'",
+                     "description: >-"):
+            with self.subTest(line=line):
+                self.assertEqual(validator.description_problems("---\nname: x\n" + line + "\n---\n"),
+                                 ["description must be a single double-quoted line"])
+
+    def test_limits_section_is_detected(self):
+        self.assertTrue(validator.has_limits_section("# T\n\n## Limits\n\n- one\n"))
+        self.assertFalse(validator.has_limits_section("# T\n\n## Limitations\n\n- one\n"))
+        self.assertFalse(validator.has_limits_section("# T\n\nSee ## Limits inline\n"))
+
+    def test_every_skill_md_in_this_repository_meets_the_description_and_limits_rules(self):
+        skills = sorted(ROOT.glob("plugins/*/skills/*/SKILL.md"))
+        self.assertTrue(skills)
+        for path in skills:
+            text = path.read_text(encoding="utf-8")
+            with self.subTest(skill=str(path.relative_to(ROOT))):
+                self.assertEqual(validator.description_problems(text), [])
+                self.assertTrue(validator.has_limits_section(text))
 
 
 if __name__ == "__main__":

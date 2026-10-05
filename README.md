@@ -6,6 +6,8 @@ agent-security-skills is a Claude Code plugin marketplace and an [agentskills.io
 
 Eight skills (each with a tested script or a checklist), three slash commands, a subagent, two guard hooks for `Bash`, and an optional MCP server over the [ai-agent-incidents](https://github.com/basitalisandhu/ai-agent-incidents) dataset (80 documented events mapped to OWASP Agentic, OWASP LLM and MITRE ATLAS). No telemetry, no network calls except the documented, opt-in dataset refresh.
 
+Typical questions it answers: "is this MCP server safe to install?", "does this agent have the lethal trifecta?" and "could a malicious skill or plugin in this repository take over my agent?".
+
 ## When to use this
 
 - How do I review an MCP server for security from inside Claude Code? `mcp-server-review`
@@ -13,6 +15,9 @@ Eight skills (each with a tested script or a checklist), three slash commands, a
 - Is this agent vulnerable to prompt injection, and where do approvals and provenance checks belong? `prompt-injection-review`
 - Which Claude Code hooks block dangerous tool calls, such as printing secrets or piping `curl` into a shell? The two bundled `PreToolUse` hooks
 - Is the `.claude/` or `.mcp.json` in a repository I just cloned safe to open with an agent? `agent-config-audit`
+- Is this MCP server safe to install? `mcp-server-review` on its source, then `agent-config-audit` on the config that launches it
+- Does this agent have the lethal trifecta (private data, untrusted content and a way to send data out)? `prompt-injection-review`
+- Skill supply chain: does a skill, plugin or hook I am about to install carry a malicious instruction, a secret or an unpinned server? `agent-config-audit`
 
 ## Install
 
@@ -107,8 +112,8 @@ The same server is published on every release tag, for use outside the plugin, b
 
 | Registry | Package | Run |
 |---|---|---|
-| npm (GitHub Packages) | `@basitalisandhu/agent-incidents-mcp` | `npx -y @basitalisandhu/agent-incidents-mcp@0.1.1` |
-| Container (GHCR) | `ghcr.io/basitalisandhu/agent-incidents-mcp` | `docker run --rm -i ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.1` |
+| npm (GitHub Packages) | `@basitalisandhu/agent-incidents-mcp` | `npx -y @basitalisandhu/agent-incidents-mcp@0.1.2` |
+| Container (GHCR) | `ghcr.io/basitalisandhu/agent-incidents-mcp` | `docker run --rm -i ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.2` |
 
 GitHub's npm registry asks for a token even for public packages. Point the scope at it in `~/.npmrc`, with a personal access token (classic) that has the `read:packages` scope exported as `GITHUB_TOKEN`:
 
@@ -120,17 +125,17 @@ GitHub's npm registry asks for a token even for public packages. Point the scope
 Then add it to Claude Code with either:
 
 ```bash
-claude mcp add agent-incidents -- npx -y @basitalisandhu/agent-incidents-mcp@0.1.1
-claude mcp add agent-incidents -- docker run --rm -i ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.1
+claude mcp add agent-incidents -- npx -y @basitalisandhu/agent-incidents-mcp@0.1.2
+claude mcp add agent-incidents -- docker run --rm -i ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.2
 ```
 
-The image (linux/amd64 and linux/arm64) runs as the non-root `node` user on stdio and opens no port. To serve a newer dataset, mount it: `docker run --rm -i -v "$PWD/incidents.json:/data/incidents.json:ro" -e AGENT_INCIDENTS_DATA=/data/incidents.json ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.1`. Each image is signed with cosign (keyless) and has a build provenance attestation and an SPDX SBOM (attached to the GitHub Release). To verify:
+The image (linux/amd64 and linux/arm64) runs as the non-root `node` user on stdio and opens no port. To serve a newer dataset, mount it: `docker run --rm -i -v "$PWD/incidents.json:/data/incidents.json:ro" -e AGENT_INCIDENTS_DATA=/data/incidents.json ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.2`. Each image is signed with cosign (keyless) and has a build provenance attestation and an SPDX SBOM (attached to the GitHub Release). To verify:
 
 ```bash
-cosign verify ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.1 \
+cosign verify ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.2 \
   --certificate-identity-regexp '^https://github.com/basitalisandhu/agent-security-skills/' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
-gh attestation verify oci://ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.1 --owner basitalisandhu
+gh attestation verify oci://ghcr.io/basitalisandhu/agent-incidents-mcp:0.1.2 --owner basitalisandhu
 ```
 
 ## Compatibility with agentskills.io

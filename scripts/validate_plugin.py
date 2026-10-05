@@ -7,6 +7,8 @@ Checks:
     whose name matches the entry name
   * every skills/<name>/SKILL.md has YAML frontmatter with name (equal to the directory name, lowercase, hyphens,
     at most 64 chars) and description (at most 1024 chars); referenced relative links resolve
+  * every description is one double-quoted line of at most 600 characters with a "Use ..." sentence and a
+    "Not for" boundary, and every SKILL.md has a "## Limits" section
   * every commands/*.md has frontmatter with a description; every agents/*.md has name and description
   * hooks/hooks.json uses the {"hooks": {...}} wrapper, every command hook names an existing script, and exec-form
     args reference files that exist under ${CLAUDE_PLUGIN_ROOT}
@@ -91,6 +93,40 @@ def scalar_problems(text: str) -> list[str]:
     return problems
 
 
+DESCRIPTION_MAX = 600
+
+
+def description_problems(text: str) -> list[str]:
+    """House rules for a SKILL.md description: one double-quoted line of at most 600 characters with a "Use ..."
+    sentence and a "Not for" boundary. Returns one message per broken rule (empty when there is no frontmatter)."""
+    if not text.startswith("---\n"):
+        return []
+    end = text.find("\n---", 4)
+    if end < 0:
+        return []
+    raw = next((line[len("description:"):].strip() for line in text[4:end].splitlines() if line.startswith("description:")), None)
+    if raw is None:
+        return ["no description"]
+    if len(raw) < 2 or raw[0] != '"' or raw[-1] != '"':
+        return ["description must be a single double-quoted line"]
+    try:
+        desc = json.loads(raw)
+    except json.JSONDecodeError:
+        return ["description is not a valid double-quoted string"]
+    problems = []
+    if len(desc) > DESCRIPTION_MAX:
+        problems.append(f"description is {len(desc)} chars (house limit {DESCRIPTION_MAX})")
+    if "Use " not in desc:
+        problems.append('description has no "Use ..." sentence')
+    if "Not for" not in desc:
+        problems.append('description has no "Not for" boundary')
+    return problems
+
+
+def has_limits_section(text: str) -> bool:
+    return re.search(r"^## Limits[ \t]*$", text, re.M) is not None
+
+
 def check_json_files() -> dict[Path, object]:
     parsed: dict[Path, object] = {}
     for p in sorted(ROOT.rglob("*.json")):
@@ -154,8 +190,11 @@ def check_skills(plugin: Path) -> list[str]:
         if not skill.exists():
             err(f"{d.relative_to(ROOT)}: no SKILL.md")
             continue
-        for problem in scalar_problems(skill.read_text(encoding="utf-8")):
+        skill_text = skill.read_text(encoding="utf-8")
+        for problem in scalar_problems(skill_text) + description_problems(skill_text):
             err(f"{skill.relative_to(ROOT)}: {problem}")
+        if not has_limits_section(skill_text):
+            err(f"{skill.relative_to(ROOT)}: no '## Limits' section")
         fm = frontmatter(skill)
         if fm is None:
             err(f"{skill.relative_to(ROOT)}: no YAML frontmatter")
