@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The format follows Keep
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-16
+
+### Added
+
+- `tool-approval-gate-audit`: `approval_gates.py` parses Python agent code with the standard library `ast` module (never imports or runs it) and lists every tool the model can call in the OpenAI Agents SDK (`@function_tool`, `FunctionTool`), LangChain and LangGraph (`@tool`, `StructuredTool.from_function`, `Tool`, `BaseTool` subclasses), crewAI (`@tool`, `BaseTool` subclasses) and FastMCP (`@<server>.tool`), with the side effects found in its body and same-module helpers (processes, file deletes, moves and writes, network writes, mail, boto3-style cloud writes, SQL writes) or its name verb, and the gate in front of it (`needs_approval`, `interrupt()`, `interrupt_before`/`interrupt_after` including the ToolNode holding the tool, human-in-the-loop wrappers, crewAI `Task(human_input=True)`, approval-named calls, `input()`). Flags `NO-GATE` and `GATE-NOT-BOOL` (high), `GATE-RESULT-IGNORED` (high for a discarded `input()` or `interrupt()` answer, medium for other approval calls), `READONLY-HINT-BUT-WRITES` and `POLICY-MISMATCH` (medium), `DESTRUCTIVE-NO-HINT` (low, medium when the hint says `False`), `GATE-CONDITIONAL` and `GATE-ON-READ-ONLY` (info); `--policy` checks gates against a reviewed always, never or conditional decision per tool. Markdown or JSON, `--fail-on high|medium|low`, unparsable files listed as skipped (or exit 2 with `--strict`). Exit codes 0, 1 (findings at or above `--fail-on`) and 2 (bad input or usage). 14 tests over synthetic per-framework fixtures with golden JSON outputs.
+
+### Changed
+
+- Version 0.4.0 in the marketplace, plugin manifest, MCP server package, `server.json`, server and scanner version constants and README examples; the README lists the new skill and the searches it answers.
+
 ## [0.3.0] - 2026-10-09
 
 ### Added
@@ -19,7 +29,7 @@ All notable changes to this project are documented here. The format follows Keep
 
 ### Changed
 
-- Version 0.2.0 in the marketplace, plugin manifest, MCP server package, `server.json`, server and scanner version constants and README examples; the READMEs list the new skill and the searches it answers.
+- Version 0.2.0 in the marketplace, plugin manifest, MCP server package, `server.json`, server and scanner version constants and README examples; the README lists the new skill and the searches it answers.
 
 ## [0.1.2] - 2026-10-05
 
