@@ -4,6 +4,29 @@ All notable changes to this project are documented here. The format follows Keep
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-18
+
+### Added
+
+- `prompt-injection-review`: `tool_inventory.py` recognises MCP tools in Go (`mcp.NewTool("name", mcp.WithString(...))` from mcp-go, `mcp.Tool{Name: ...}` from the official go-sdk), Ruby (`tool_name "name"`, `tool "name"`, `tool :name`, with `required(:x)` and `properties:` parameters) and C# (`[McpServerTool]` and `[McpServerTool(Name = "...")]` methods, leaving out `CancellationToken` and server plumbing), and the summary names the extensions that were read without tool patterns (Rust, Java, Kotlin) so an empty table is explained (closes #4). Python tools now take the name from `@tool("name")` or `name=` (also across lines), decorators with nested calls such as `annotations=ToolAnnotations(...)` are found, and crewAI `BaseTool` subclasses are listed with their `_run` parameters.
+- `agent-eval-harness`: `--max-asr RATE` exits 1 when any attack success rate is above the rate, for a CI gate; the table and JSON count `errors`.
+- `agent-session-log-review`: a bundled example session (`references/example-session.jsonl`) to run the review on before using a real log; the README shows its output.
+
+### Fixed
+
+- `agent-eval-harness`: the documented `python3 eval/eval_runner.py --agent eval.agent:run` failed with "No module named 'eval'" because Python only put the script folder on the import path; the working directory is now added. An unknown tool name, a tool that raises on bad arguments, or an agent that raises no longer stops the whole run: the case is scored as failed and kept with its error. A bad `--agent` spec or an unwritable `--out` exits 2 with a message instead of a traceback.
+- `agent-threat-model`: `scan_agent_stack.py` skipped every file when the checkout sat inside a folder named `build`, `dist`, `target`, `vendor` or `venv`, because skip folders were matched against the absolute path (`tool_inventory.py` had the same bug); one malformed server entry or an invalid `.mcp.json` dropped every server in that file silently, and now it is reported on stderr and the other servers are kept. A missing root or an unwritable `--out` exits 2, and a walk that stops at the file limit says so. The test no longer depends on a machine-specific path for the `atm` binary (from #16).
+- `prompt-injection-review`: tool names that start with a read verb (`get_order`) are regular unless they take a recipient, URL or command; `purge`, `kill`, `reset`, `submit` and similar verbs count as consequential; camelCase names are split. A missing path exits 2. No more `DeprecationWarning` from `re.split` on Python 3.13.
+- `agent-session-log-review`: a denied `cat .env` followed by a read of `/work/repo/.env` was not linked, because relative file names were not targets; they are now joined to `--root` (or matched by file name without a root).
+- `incident-lookup`: `--format` after the subcommand (as SKILL.md writes it: `list ... --format markdown`) was rejected; both positions work now. `--framework MCP` returned nothing because the dataset spells out "Model Context Protocol"; the short name is an alias.
+- `semgrep-agentic`, `mcp-server-review` and `/agent-security:audit`: the pinned clone named tag `v1.0.0` of agentic-semgrep-rules, which does not exist (the latest is `v0.2.0`), so the clone failed and the audit command fell back silently. The config-file scan passed paths that may not exist, and one missing path makes Semgrep report nothing for the others while `|| true` hid it; only existing files are passed now.
+- Every skill that runs a bundled script says where the script is when the skill folder is copied without the plugin system (from #16).
+
+### Changed
+
+- `agent-threat-model` and `mcp-server-review` descriptions: trigger on "what could go wrong with this agent?" and trust boundaries; not for writing a new MCP server.
+- Version 0.5.0 in the marketplace, plugin manifest, MCP server package, `server.json`, server and scanner version constants and README examples.
+
 ## [0.4.0] - 2026-10-16
 
 ### Added

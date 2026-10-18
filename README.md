@@ -4,6 +4,29 @@
 
 agent-security-skills is a Claude Code plugin marketplace and an [agentskills.io](https://agentskills.io)-compatible skill pack for people who build or run LLM agents against real APIs, MCP servers and codebases: security engineers reviewing an agent before it ships, and developers who want that review inside the tool they already use. Each skill is a procedure with a tested script or a fixed checklist, so two reviewers reach the same verdict and the evidence is a file, a line or a command output.
 
+## Quick start
+
+```bash
+claude plugin marketplace add basitalisandhu/agent-security-skills
+claude plugin install agent-security@agent-security-skills
+# then, in Claude Code: "what did the agent actually do in this session?" or /agent-security:audit
+```
+
+Real output of `agent-session-log-review` on the session log bundled with the skill (`references/example-session.jsonl`, a run where a fetched issue page steered the agent), with `--root /work/widgets --allow-host github.com --flagged-only`:
+
+```text
+**Summary:** 14 events (6 tool calls), 4 flags: 1 critical, 3 high.
+
+| # | Event | Severity | Flag              | Tool | Evidence                                              |
+|---|-------|----------|-------------------|------|-------------------------------------------------------|
+| 1 | 6     | high     | TOOL-DENIED-RETRY | Read | Bash was denied; Read then targeted /work/widgets/.env |
+| 2 | 7     | high     | EGRESS-SECRET     | Read | in a tool result: AWS_ACCESS_KEY_ID=[masked secret]    |
+| 3 | 8     | critical | INJ-PROVENANCE    | Bash | collector.example.net (from event 3)                  |
+| 4 | 8     | high     | EGRESS-NETWORK    | Bash | collector.example.net                                 |
+```
+
+The script exits 1 because a flag reached `--fail-on high`, so the same command can gate an unattended agent pipeline. Time and finding columns are left out here; the full report also has a timeline of every event.
+
 Ten skills (each with a tested script or a checklist), three slash commands, a subagent, two guard hooks for `Bash`, and an optional MCP server over the [ai-agent-incidents](https://github.com/basitalisandhu/ai-agent-incidents) dataset (80 documented events mapped to OWASP Agentic, OWASP LLM and MITRE ATLAS). No telemetry, no network calls except the documented, opt-in dataset refresh.
 
 Typical questions it answers: "is this MCP server safe to install?", "does this agent have the lethal trifecta?", "could a malicious skill or plugin in this repository take over my agent?" and "which of my agent's tools run without approval?" and "what did the agent actually do in this session?".
@@ -157,8 +180,8 @@ The same server is published on every release tag, for use outside the plugin, b
 
 | Registry | Package | Run |
 |---|---|---|
-| npm (GitHub Packages) | `@basitalisandhu/agent-incidents-mcp` | `npx -y @basitalisandhu/agent-incidents-mcp@0.4.0` |
-| Container (GHCR) | `ghcr.io/basitalisandhu/agent-incidents-mcp` | `docker run --rm -i ghcr.io/basitalisandhu/agent-incidents-mcp:0.4.0` |
+| npm (GitHub Packages) | `@basitalisandhu/agent-incidents-mcp` | `npx -y @basitalisandhu/agent-incidents-mcp@0.5.0` |
+| Container (GHCR) | `ghcr.io/basitalisandhu/agent-incidents-mcp` | `docker run --rm -i ghcr.io/basitalisandhu/agent-incidents-mcp:0.5.0` |
 
 GitHub's npm registry asks for a token even for public packages. Point the scope at it in `~/.npmrc`, with a personal access token (classic) that has the `read:packages` scope exported as `GITHUB_TOKEN`:
 
@@ -170,17 +193,17 @@ GitHub's npm registry asks for a token even for public packages. Point the scope
 Then add it to Claude Code with either:
 
 ```bash
-claude mcp add agent-incidents -- npx -y @basitalisandhu/agent-incidents-mcp@0.4.0
-claude mcp add agent-incidents -- docker run --rm -i ghcr.io/basitalisandhu/agent-incidents-mcp:0.4.0
+claude mcp add agent-incidents -- npx -y @basitalisandhu/agent-incidents-mcp@0.5.0
+claude mcp add agent-incidents -- docker run --rm -i ghcr.io/basitalisandhu/agent-incidents-mcp:0.5.0
 ```
 
-The image (linux/amd64 and linux/arm64) runs as the non-root `node` user on stdio and opens no port. To serve a newer dataset, mount it: `docker run --rm -i -v "$PWD/incidents.json:/data/incidents.json:ro" -e AGENT_INCIDENTS_DATA=/data/incidents.json ghcr.io/basitalisandhu/agent-incidents-mcp:0.4.0`. Each image is signed with cosign (keyless) and has a build provenance attestation and an SPDX SBOM (attached to the GitHub Release). To verify:
+The image (linux/amd64 and linux/arm64) runs as the non-root `node` user on stdio and opens no port. To serve a newer dataset, mount it: `docker run --rm -i -v "$PWD/incidents.json:/data/incidents.json:ro" -e AGENT_INCIDENTS_DATA=/data/incidents.json ghcr.io/basitalisandhu/agent-incidents-mcp:0.5.0`. Each image is signed with cosign (keyless) and has a build provenance attestation and an SPDX SBOM (attached to the GitHub Release). To verify:
 
 ```bash
-cosign verify ghcr.io/basitalisandhu/agent-incidents-mcp:0.4.0 \
+cosign verify ghcr.io/basitalisandhu/agent-incidents-mcp:0.5.0 \
   --certificate-identity-regexp '^https://github.com/basitalisandhu/agent-security-skills/' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
-gh attestation verify oci://ghcr.io/basitalisandhu/agent-incidents-mcp:0.4.0 --owner basitalisandhu
+gh attestation verify oci://ghcr.io/basitalisandhu/agent-incidents-mcp:0.5.0 --owner basitalisandhu
 ```
 
 ## Compatibility with agentskills.io
