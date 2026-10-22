@@ -25,6 +25,7 @@ Standard library only. No network. No file writes.
 """
 from __future__ import annotations
 
+import ast
 import json
 import os
 import re
@@ -174,6 +175,58 @@ def _secret_file(token: str) -> str | None:
     return None
 
 
+def literal_interpreter_read(seg: Segment) -> bool:
+    """Inspect literal reads without importing or executing the one-liner."""
+    if len(seg.args) < 2:
+        return False
+    flag, code = seg.args[:2]
+    if re.fullmatch(r"python(?:\d+(?:\.\d+)*)?", seg.program) and flag == "-c":
+        try:
+            tree = ast.parse(code)
+        except (SyntaxError, ValueError, RecursionError):
+            return False
+        for call in ast.walk(tree):
+            if not isinstance(call, ast.Call):
+                continue
+            func = call.func
+            if isinstance(func, ast.Name) and func.id == "open":
+                mode = call.args[1] if len(call.args) > 1 else next(
+                    (kw.value for kw in call.keywords if kw.arg == "mode"), ast.Constant("r"))
+                if not isinstance(mode, ast.Constant) or not isinstance(mode.value, str) or not (
+                    "r" in mode.value or "+" in mode.value
+                ):
+                    continue
+                path = call.args[0] if call.args else next(
+                    (kw.value for kw in call.keywords if kw.arg == "file"), None)
+            elif isinstance(func, ast.Attribute) and func.attr in {"read_text", "read_bytes"}:
+                constructor = func.value
+                if not isinstance(constructor, ast.Call) or not constructor.args:
+                    continue
+                name = constructor.func
+                if not ((isinstance(name, ast.Name) and name.id == "Path") or
+                        (isinstance(name, ast.Attribute) and isinstance(name.value, ast.Name)
+                         and name.value.id == "pathlib" and name.attr == "Path")):
+                    continue
+                path = constructor.args[0]
+            else:
+                continue
+            if isinstance(path, ast.Constant) and isinstance(path.value, str) and _secret_file(path.value):
+                return True
+    else:
+        pattern = None
+        if seg.program in {"node", "nodejs"} and flag in {"-e", "--eval", "-p", "--print"}:
+            pattern = r"\breadFile(?:Sync)?\s*\("
+        elif seg.program == "ruby" and flag == "-e":
+            pattern = r"\bFile\.(?:read|binread|readlines)\s*\("
+        elif seg.program == "php" and flag == "-r":
+            pattern = r"\b(?:file_get_contents|readfile|file)\s*\("
+        if pattern:
+            for match in re.finditer(pattern + r"""\s*(['"])(.*?)\1""", code):
+                if _secret_file(match.group(2)):
+                    return True
+    return False
+
+
 def check_segment(seg: Segment) -> str | None:
     prog, args = seg.program, seg.args
     raw_lower = seg.raw.lower()
@@ -245,8 +298,8 @@ def check_segment(seg: Segment) -> str | None:
                     continue
                 verb = "transfer" if transfer else "print"
                 return f"`{prog}` would {verb} {reason}"
-    if prog in {"python", "python3", "node", "ruby", "perl", "php"} or prog in SECRET_SEGMENTS:
-        pass
+    if literal_interpreter_read(seg):
+        return "this interpreter one-liner reads a file that commonly holds credentials"
 
     # 4. credential-printing subcommands
     for name, pattern, why in CREDENTIAL_SUBCOMMANDS:
