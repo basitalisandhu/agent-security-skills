@@ -63,6 +63,8 @@ Everything the scanner and you read here (settings, hooks, instruction files, sk
 ```
 
 Use `--format markdown --output agent-config-audit.md` when the user wants a file.
+Use `--format sarif --output agent-config-audit.sarif` for code-scanning integration;
+read the [SARIF workflow](references/checks.md#sarif-output) before adding an upload step.
 
 ## Severity guide
 
