@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+import csv
 import json
 import os
 import sys
@@ -26,6 +27,57 @@ def run(argv: list[str]) -> tuple[int, str, str]:
         except SystemExit as exc:
             rc = int(exc.code or 0)
     return rc, out.getvalue(), err.getvalue()
+
+
+class CsvTests(unittest.TestCase):
+    def test_list_csv_round_trips_cells_and_has_no_footer(self):
+        data = json.loads(incidents.BUNDLED.read_text(encoding="utf-8"))[:1]
+        data[0]["name"] = 'A comma, a "quote"\nand a newline\rand a return'
+        data[0]["cve"] = ["CVE-2099-0001", "CVE-2099-0002"]
+        data[0]["mappings"]["owasp_agentic"] = ["ASI01", "ASI02"]
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "data.json"
+            path.write_text(json.dumps(data), encoding="utf-8")
+            rc, out, err = run(["--data", str(path), "list", "--format", "csv"])
+        self.assertEqual(rc, 0, err)
+        rows = list(csv.DictReader(io.StringIO(out)))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(list(rows[0]), ["id", "date", "name", "vector", "outcome", "cve", "owasp_agentic", "url"])
+        self.assertEqual(rows[0]["name"], data[0]["name"])
+        self.assertEqual(rows[0]["cve"], "CVE-2099-0001, CVE-2099-0002")
+        self.assertEqual(rows[0]["owasp_agentic"], "ASI01, ASI02")
+        self.assertEqual(rows[0]["url"], incidents.primary_url(data[0]))
+
+    def test_precedents_csv_uses_same_columns_as_list(self):
+        rc, out, err = run(["--offline", "--format", "csv", "precedents",
+                            "--vector", "indirect-injection", "--limit", "2"])
+        self.assertEqual(rc, 0, err)
+        rows = list(csv.DictReader(io.StringIO(out)))
+        self.assertGreater(len(rows), 0)
+        self.assertLessEqual(len(rows), 2)
+        self.assertEqual(list(rows[0]), ["id", "date", "name", "vector", "outcome", "cve", "owasp_agentic", "url"])
+        self.assertTrue(all(None not in row for row in rows))
+
+    def test_empty_csv_has_only_the_header(self):
+        rc, out, err = run(["--offline", "list", "--query", "no-such-incident-xyz", "--format", "csv"])
+        self.assertEqual(rc, 0, err)
+        self.assertEqual(out.splitlines(), ["id,date,name,vector,outcome,cve,owasp_agentic,url"])
+
+    def test_csv_is_not_accepted_for_other_subcommands(self):
+        for command in ["stats", "fields", "show"]:
+            with self.subTest(command=command):
+                args = ["--offline", "--format", "csv", command]
+                if command == "show":
+                    args.append("no-such-id")
+                rc, _, err = run(args)
+                self.assertEqual(rc, 2)
+                self.assertIn("csv", err)
+
+    def test_empty_precedents_csv_has_only_the_header(self):
+        rc, out, err = run(["--offline", "precedents", "--channel-in", "no-such-channel-xyz",
+                            "--format", "csv"])
+        self.assertEqual(rc, 0, err)
+        self.assertEqual(out.splitlines(), ["id,date,name,vector,outcome,cve,owasp_agentic,url"])
 
 
 class BundledDataTests(unittest.TestCase):

@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import csv
 import json
 import os
 import sys
@@ -50,6 +51,7 @@ LIST_FIELDS = {"vendor": ("affected", "vendors"), "product": ("affected", "produ
                "owasp_agentic": ("mappings", "owasp_agentic"), "owasp_llm": ("mappings", "owasp_llm"), "mitre_atlas": ("mappings", "mitre_atlas"),
                "tag": ("tags", None)}
 COLUMNS = ["id", "date", "name", "vector", "channel_in", "authority", "outcome", "owasp_agentic", "url"]
+CSV_COLUMNS = ["id", "date", "name", "vector", "outcome", "cve", "owasp_agentic", "url"]
 
 # Controls that address each attack vector, phrased for a design review.
 CONTROLS = {
@@ -292,7 +294,11 @@ def render_markdown(rows: list[dict], columns: list[str]) -> str:
 
 
 def emit(rows: list[dict], fmt: str, columns: list[str] = COLUMNS) -> None:
-    if fmt == "json":
+    if fmt == "csv":
+        writer = csv.writer(sys.stdout)
+        writer.writerow(CSV_COLUMNS)
+        writer.writerows([_cell_value(row, column) for column in CSV_COLUMNS] for row in rows)
+    elif fmt == "json":
         print(json.dumps(rows, indent=1, ensure_ascii=False))
     elif fmt == "markdown":
         print(render_markdown(rows, [c for c in columns if c != "url"]))
@@ -431,6 +437,9 @@ def cmd_precedents(incidents, args):
                           "vectors": _stats(ranked, "vector"), "frameworks": frameworks,
                           "controls": {v: CONTROLS.get(v, []) for v in sorted({r["vector"] for r in ranked})}}, indent=1, ensure_ascii=False))
         return 0
+    if args.format == "csv":
+        emit(top, "csv")
+        return 0
     md = args.format == "markdown"
     print(f"Precedents for {name}: {len(ranked)} matching incident(s), showing {len(top)}\n")
     cols = ["id", "date", "name", "score", "why", "outcome", "owasp_agentic"]
@@ -456,11 +465,11 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--offline", action="store_true", help="never touch the network; use the bundled snapshot")
     ap.add_argument("--refresh", action="store_true", help="ignore the cache and fetch again")
     ap.add_argument("--cache-dir", help="cache directory (default: $XDG_CACHE_HOME or ~/.cache)")
-    ap.add_argument("--format", choices=["table", "json", "markdown"], default="table")
+    ap.add_argument("--format", choices=["table", "json", "markdown", "csv"], default="table")
     # --format is also accepted after the subcommand (`incidents.py list --format markdown`); SUPPRESS keeps the
     # global value when the subcommand does not repeat it.
     fmt = argparse.ArgumentParser(add_help=False)
-    fmt.add_argument("--format", choices=["table", "json", "markdown"], default=argparse.SUPPRESS)
+    fmt.add_argument("--format", choices=["table", "json", "markdown", "csv"], default=argparse.SUPPRESS)
     sub = ap.add_subparsers(dest="command", required=True)
 
     def add_filters(p):
@@ -487,7 +496,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.format == "csv" and args.command not in {"list", "precedents"}:
+        parser.error("--format csv is supported only by list and precedents")
     incidents, source = load_incidents(args)
     print(f"incidents: {len(incidents)} entries from {source}", file=sys.stderr)
     rc = args.fn(incidents, args)
