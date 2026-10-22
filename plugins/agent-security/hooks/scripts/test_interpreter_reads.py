@@ -9,6 +9,24 @@ from test_hooks import BLOCK, run_hook
 
 
 class InterpreterReadTests(unittest.TestCase):
+    def test_python_options_do_not_hide_literal_reads(self):
+        for flags in ["-I", "-u -B", "-X dev", "-W ignore", "-I -X dev -B"]:
+            with self.subTest(flags=flags):
+                rc, out, err = run_hook(BLOCK, f"""python3 {flags} -c "print(open('.env').read())" """)
+                self.assertEqual(rc, 2, err)
+                self.assertEqual(out, "")
+                self.assertIn(".env", err)
+
+    def test_literal_read_reason_names_the_file(self):
+        rc, _, err = run_hook(BLOCK, """python3 -c "print(open('.env').read())" """)
+        self.assertEqual(rc, 2, err)
+        self.assertIn(".env", err)
+
+    def test_python_script_arguments_are_not_treated_as_source(self):
+        for args in ["script.py", "-m harmless_module"]:
+            with self.subTest(args=args):
+                self.assertEqual(run_hook(BLOCK, f"""python3 {args} -c "print(open('.env').read())" """), (0, "", ""))
+
     def test_literal_secret_reads_are_blocked(self):
         commands = [
             """python -c "print(open('.env').read())" """,

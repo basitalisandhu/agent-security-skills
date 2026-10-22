@@ -13,6 +13,8 @@ What it blocks (see README for the full list and the reasoning):
     `printenv GITHUB_TOKEN`, `declare -p AWS_SECRET_ACCESS_KEY`
   * reading secret files with a display or transfer program: `cat .env`, `less ~/.aws/credentials`,
     `base64 id_rsa`, `scp .env host:`, `tail ~/.config/gh/hosts.yml`
+  * literal interpreter file reads, including Python option-prefixed `-c` commands;
+    the rejection names the credential path, never its contents
   * credential-printing subcommands: `gh auth token`, `gcloud auth print-access-token`,
     `az account get-access-token`, `aws configure export-credentials`, `kubectl get secret ... -o`,
     `vault kv get`, `op read`, `security find-generic-password -w`, `heroku config`, `doppler secrets`
@@ -175,16 +177,37 @@ def _secret_file(token: str) -> str | None:
     return None
 
 
-def literal_interpreter_read(seg: Segment) -> bool:
+def _python_source(args: list[str]) -> str | None:
+    """Find -c before a script/-m boundary, respecting Python startup options."""
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg == "-c":
+            return args[i + 1] if i + 1 < len(args) else None
+        if arg in {"-W", "-X"}:
+            i += 2
+        elif arg.startswith(("-W", "-X")) and len(arg) > 2:
+            i += 1
+        elif arg.startswith("-") and len(arg) > 1 and set(arg[1:]) <= set("bBdEiIOPqRsSuvx"):
+            i += 1
+        else:
+            return None
+    return None
+
+
+def literal_interpreter_read(seg: Segment) -> str | None:
     """Inspect literal reads without importing or executing the one-liner."""
     if len(seg.args) < 2:
-        return False
+        return None
     flag, code = seg.args[:2]
-    if re.fullmatch(r"python(?:\d+(?:\.\d+)*)?", seg.program) and flag == "-c":
+    if re.fullmatch(r"python(?:\d+(?:\.\d+)*)?", seg.program):
+        code = _python_source(seg.args)
+        if code is None:
+            return None
         try:
             tree = ast.parse(code)
         except (SyntaxError, ValueError, RecursionError):
-            return False
+            return None
         for call in ast.walk(tree):
             if not isinstance(call, ast.Call):
                 continue
@@ -210,8 +233,10 @@ def literal_interpreter_read(seg: Segment) -> bool:
                 path = constructor.args[0]
             else:
                 continue
-            if isinstance(path, ast.Constant) and isinstance(path.value, str) and _secret_file(path.value):
-                return True
+            if isinstance(path, ast.Constant) and isinstance(path.value, str):
+                reason = _secret_file(path.value)
+                if reason:
+                    return reason
     else:
         pattern = None
         if seg.program in {"node", "nodejs"} and flag in {"-e", "--eval", "-p", "--print"}:
@@ -222,9 +247,10 @@ def literal_interpreter_read(seg: Segment) -> bool:
             pattern = r"\b(?:file_get_contents|readfile|file)\s*\("
         if pattern:
             for match in re.finditer(pattern + r"""\s*(['"])(.*?)\1""", code):
-                if _secret_file(match.group(2)):
-                    return True
-    return False
+                reason = _secret_file(match.group(2))
+                if reason:
+                    return reason
+    return None
 
 
 def check_segment(seg: Segment) -> str | None:
@@ -298,8 +324,9 @@ def check_segment(seg: Segment) -> str | None:
                     continue
                 verb = "transfer" if transfer else "print"
                 return f"`{prog}` would {verb} {reason}"
-    if literal_interpreter_read(seg):
-        return "this interpreter one-liner reads a file that commonly holds credentials"
+    literal_read = literal_interpreter_read(seg)
+    if literal_read:
+        return f"this interpreter one-liner would read {literal_read}"
 
     # 4. credential-printing subcommands
     for name, pattern, why in CREDENTIAL_SUBCOMMANDS:
