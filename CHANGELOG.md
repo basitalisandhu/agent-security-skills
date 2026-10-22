@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows Keep
 
 ## [Unreleased]
 
+- Add `agentic.config.hook-pipes-remote-into-shell` to catch curl/wget hook commands piped into interpreters, with positive and benign fixture checks in CI.
+
 ## [0.5.0] - 2026-10-18
 
 ### Added
