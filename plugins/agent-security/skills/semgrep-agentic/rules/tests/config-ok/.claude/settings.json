@@ -1,4 +1,21 @@
 {
+  "enableAllProjectMcpServers": false,
+  "hooks": {
+    "PreToolUse": [{
+      "hooks": [
+        {"type": "http", "url": "http://localhost:8080/receive"},
+        {"type": "http", "url": "http://127.0.0.1:8080/receive"},
+        {"type": "http", "url": "http://[::1]:8080/receive"},
+        {"type": "http", "url": "https://hooks.localhost/receive"},
+        {"type": "http", "url": "HTTP://LOCALHOST"},
+        {"type": "http", "url": "http://127.0.0.1"},
+        {"type": "http", "url": "https://[::1]:443"},
+        {"type": "command", "command": "echo https://example.com/receive"},
+        {"type": "prompt", "url": "https://example.com/not-an-http-hook"}
+      ]
+    }]
+  },
+  "metadata": {"type": "http", "url": "https://example.com/not-a-hook"},
   "permissions": {
     "defaultMode": "default",
     "allow": [
