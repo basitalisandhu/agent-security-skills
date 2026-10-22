@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows Keep
 
 ## [Unreleased]
 
+### Added
+
+- `agent-config-audit`: SARIF 2.1.0 output for code scanning, with stable rule IDs, severity mapping, redacted finding locations and scan-error notifications.
+
 ## [0.5.0] - 2026-10-18
 
 ### Added
