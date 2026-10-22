@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows Keep
 
 ## [Unreleased]
 
+### Fixed
+
+- `block-secret-exposure`: inspect literal Python `open`/`Path` reads, Node `readFile`/`readFileSync`, Ruby `File.read` and PHP file reads in interpreter one-liners before they run. Ordinary reads, filename mentions and `.env` templates remain allowed. This is a best-effort literal check, not an interpreter sandbox; computed paths and obfuscated code are outside its scope.
+
 ## [0.5.0] - 2026-10-18
 
 ### Added
