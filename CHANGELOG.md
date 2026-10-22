@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows Keep
 
 ## [Unreleased]
 
+### Fixed
+
+- `agent-config-audit`: mirror the standalone scanner's medium-severity `PERM-012` finding for explicit `Read` allow rules over credential stores and private keys, with the same rule ID and `.env` template exceptions. Ordinary project paths and deny-only rules are not flagged.
+
 ## [0.5.0] - 2026-10-18
 
 ### Added
