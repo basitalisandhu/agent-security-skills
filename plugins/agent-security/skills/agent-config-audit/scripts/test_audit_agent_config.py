@@ -326,16 +326,17 @@ class SarifTests(unittest.TestCase):
             self.assertEqual({r["id"] for r in run["tool"]["driver"]["rules"]}, documented)
 
     def test_scan_errors_are_visible_and_external_paths_are_uris(self):
+        external = Path(tempfile.gettempdir()).resolve() / "config dir" / "settings.json"
         rep = {"version": audit.VERSION, "errors": ["could not read file"], "findings": [{
             "id": "FUTURE-001", "severity": "low", "title": "Future rule",
-            "file": "/tmp/config dir/settings.json", "line": 4,
+            "file": str(external), "line": 4,
             "evidence": "masked", "recommendation": "Review it.",
         }]}
         run = audit.to_sarif(rep)["runs"][0]
         self.assertFalse(run["invocations"][0]["executionSuccessful"])
         self.assertEqual(run["invocations"][0]["toolExecutionNotifications"][0]["message"]["text"], "could not read file")
         self.assertEqual(run["results"][0]["locations"][0]["physicalLocation"]["artifactLocation"]["uri"],
-                         "file:///tmp/config%20dir/settings.json")
+                         external.as_uri())
         self.assertIn("FUTURE-001", {r["id"] for r in run["tool"]["driver"]["rules"]})
         rep["findings"][0]["file"] = r"C:\config dir\settings.json"
         location = audit.to_sarif(rep)["runs"][0]["results"][0]["locations"][0]
