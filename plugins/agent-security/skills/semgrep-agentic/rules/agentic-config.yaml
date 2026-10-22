@@ -1,4 +1,40 @@
 rules:
+  - id: agentic.config.project-mcp-auto-approved
+    message: >-
+      enableAllProjectMcpServers starts every server from a cloned project's MCP configuration.
+      Review each server before enabling it instead of blanket approval.
+    severity: WARNING
+    languages: [json]
+    paths:
+      include: ["**/settings.json", "**/settings.local.json"]
+    metadata:
+      category: security
+      confidence: HIGH
+      audit-check: PERM-007
+    pattern: |
+      "enableAllProjectMcpServers": true
+
+  - id: agentic.config.remote-http-hook
+    message: >-
+      An HTTP hook sends tool payloads to a remote endpoint. Payloads can include commands,
+      paths and file contents. Keep the hook on loopback or verify the endpoint and data policy.
+    severity: WARNING
+    languages: [json]
+    paths:
+      include: ["**/settings.json", "**/settings.local.json"]
+    metadata:
+      category: security
+      confidence: HIGH
+      audit-check: HOOK-002
+    patterns:
+      - pattern-inside: |
+          "hooks": { ... }
+      - pattern: |
+          {"type": "http", "url": $URL, ...}
+      - metavariable-regex:
+          metavariable: $URL
+          regex: '(?i)^"?https?://(?!(?:(?:[A-Za-z0-9-]+\.)*localhost|127\.0\.0\.1|\[::1\])(?::[0-9]+)?(?:/|"?$))'
+
   - id: agentic.config.bash-wildcard-allowed
     message: >-
       permissions.allow pre-approves every shell command. One prompt injection then runs anything without a prompt.

@@ -93,11 +93,17 @@ jobs:
           semgrep --metrics=off --config agentic-config.yaml --json -o ok.json tests/config-ok/.claude/settings.json tests/config-ok/.mcp.json
           python3 - <<'PY'
           import json
-          bad = {r["check_id"].split(".")[-1] for r in json.load(open("bad.json"))["results"]}
-          ok = json.load(open("ok.json"))["results"]
-          expected = {"bash-wildcard-allowed", "bypass-permissions-default", "mcp-plain-http", "mcp-literal-bearer-token", "mcp-unpinned-npx"}
+          bad_report = json.load(open("bad.json"))
+          assert not bad_report["errors"], bad_report["errors"]
+          bad = {r["check_id"].split(".")[-1] for r in bad_report["results"]}
+          ok_report = json.load(open("ok.json"))
+          assert not ok_report["errors"], ok_report["errors"]
+          ok = ok_report["results"]
+          expected = {"bash-wildcard-allowed", "bypass-permissions-default", "mcp-plain-http", "mcp-literal-bearer-token", "mcp-unpinned-npx", "project-mcp-auto-approved", "remote-http-hook"}
           missing = expected - bad
           assert not missing, f"config rules did not fire: {missing}"
+          hooks = [r for r in bad_report["results"] if r["check_id"].endswith(".remote-http-hook")]
+          assert len(hooks) == 4, f"expected all 4 remote hooks, including deceptive loopback names: {hooks}"
           assert not ok, f"config rules fired on the good fixture: {[r['check_id'] for r in ok]}"
           print("config rules ok:", sorted(bad))
           PY
