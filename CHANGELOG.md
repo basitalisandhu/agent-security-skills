@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows Keep
 
 ## [Unreleased]
 
-- Mirror `PERM-007` project MCP auto-approval and `HOOK-002` remote HTTP hooks in the bundled Semgrep configuration rules, with remote/loopback fixture checks in CI.
+- Add `agentic.config.hook-pipes-remote-into-shell` to catch curl/wget hook commands piped into interpreters, with positive and benign fixture checks in CI.
 
 ## [0.5.0] - 2026-10-18
 
