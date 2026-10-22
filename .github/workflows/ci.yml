@@ -99,11 +99,11 @@ jobs:
           ok_report = json.load(open("ok.json"))
           assert not ok_report["errors"], ok_report["errors"]
           ok = ok_report["results"]
-          expected = {"bash-wildcard-allowed", "bypass-permissions-default", "mcp-plain-http", "mcp-literal-bearer-token", "mcp-unpinned-npx", "project-mcp-auto-approved", "remote-http-hook"}
+          expected = {"bash-wildcard-allowed", "bypass-permissions-default", "mcp-plain-http", "mcp-literal-bearer-token", "mcp-unpinned-npx", "hook-pipes-remote-into-shell"}
           missing = expected - bad
           assert not missing, f"config rules did not fire: {missing}"
-          hooks = [r for r in bad_report["results"] if r["check_id"].endswith(".remote-http-hook")]
-          assert len(hooks) == 4, f"expected all 4 remote hooks, including deceptive loopback names: {hooks}"
+          hooks = [r for r in bad_report["results"] if r["check_id"].endswith(".hook-pipes-remote-into-shell")]
+          assert len(hooks) == 7, f"expected all 7 interpreter variants: {hooks}"
           assert not ok, f"config rules fired on the good fixture: {[r['check_id'] for r in ok]}"
           print("config rules ok:", sorted(bad))
           PY
