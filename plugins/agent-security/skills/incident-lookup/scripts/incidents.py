@@ -51,7 +51,6 @@ LIST_FIELDS = {"vendor": ("affected", "vendors"), "product": ("affected", "produ
                "owasp_agentic": ("mappings", "owasp_agentic"), "owasp_llm": ("mappings", "owasp_llm"), "mitre_atlas": ("mappings", "mitre_atlas"),
                "tag": ("tags", None)}
 COLUMNS = ["id", "date", "name", "vector", "channel_in", "authority", "outcome", "owasp_agentic", "url"]
-CSV_COLUMNS = ["id", "date", "name", "vector", "outcome", "cve", "owasp_agentic", "url"]
 
 # Controls that address each attack vector, phrased for a design review.
 CONTROLS = {
@@ -296,8 +295,15 @@ def render_markdown(rows: list[dict], columns: list[str]) -> str:
 def emit(rows: list[dict], fmt: str, columns: list[str] = COLUMNS) -> None:
     if fmt == "csv":
         writer = csv.writer(sys.stdout)
-        writer.writerow(CSV_COLUMNS)
-        writer.writerows([_cell_value(row, column) for column in CSV_COLUMNS] for row in rows)
+        writer.writerow(columns)
+        def csv_cell(row, column):
+            if column == "cve":
+                return "; ".join(row.get(column, []))
+            if column in LIST_FIELDS:
+                return "; ".join(_list_values(row, column))
+            value = row.get(column)
+            return "; ".join(value) if isinstance(value, list) else _cell_value(row, column)
+        writer.writerows([csv_cell(row, column) for column in columns] for row in rows)
     elif fmt == "json":
         print(json.dumps(rows, indent=1, ensure_ascii=False))
     elif fmt == "markdown":
@@ -438,7 +444,7 @@ def cmd_precedents(incidents, args):
                           "controls": {v: CONTROLS.get(v, []) for v in sorted({r["vector"] for r in ranked})}}, indent=1, ensure_ascii=False))
         return 0
     if args.format == "csv":
-        emit(top, "csv")
+        emit(top, "csv", ["id", "date", "name", "score", "why", "outcome", "owasp_agentic", "url"])
         return 0
     md = args.format == "markdown"
     print(f"Precedents for {name}: {len(ranked)} matching incident(s), showing {len(top)}\n")

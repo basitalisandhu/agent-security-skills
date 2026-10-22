@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The format follows Keep
 
 ### Added
 
-- `incident-lookup`: `list` and `precedents` accept `--format csv` before or after the subcommand, with stable columns `id,date,name,vector,outcome,cve,owasp_agentic,url`. Lists are comma-separated inside quoted CSV cells; stdout contains only the header and rows, including a header for empty results.
+- `incident-lookup`: `list` and `precedents` accept `--format csv` before or after the subcommand, preserving each command's columns, including precedent scores and explanations. Lists use `; ` inside CSV cells; stdout contains only the header and rows, including a header for empty results.
 
 ## [0.5.0] - 2026-10-18
 
