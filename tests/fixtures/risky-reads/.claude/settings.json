@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(./.env)",
+      "Read(./src/**)",
+      "Read(./.env.example)"
+    ],
+    "deny": [
+      "Read(~/.ssh/**)"
+    ]
+  }
+}
