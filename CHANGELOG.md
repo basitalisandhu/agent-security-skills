@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows Keep
 
 ## [Unreleased]
 
+- Add SARIF 2.1.0 output to `agent-config-audit`, with stable rule descriptors, finding locations, and unchanged `--fail-on` behavior.
+
 ## [0.5.0] - 2026-10-18
 
 ### Added

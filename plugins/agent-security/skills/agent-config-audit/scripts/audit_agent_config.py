@@ -29,9 +29,54 @@ import stat
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from urllib.parse import quote
 
 VERSION = "0.5.0"
 SEVERITIES = ["critical", "high", "medium", "low", "info"]
+SARIF_LEVEL = {"critical": "error", "high": "error", "medium": "warning", "low": "note", "info": "note"}
+# Stable descriptors include checks which did not fire in this scan.
+SARIF_RULES = {
+    "PERM-001": "Unrestricted shell permission",
+    "PERM-002": "Risky program pre-approved",
+    "PERM-003": "Approval bypass mode",
+    "PERM-004": "Unrestricted write permission",
+    "PERM-005": "Unrestricted web permission",
+    "PERM-006": "Whole MCP server pre-approved",
+    "PERM-007": "Automatic project MCP servers",
+    "PERM-008": "Hooks disabled",
+    "PERM-009": "Bypass flag in allow rule",
+    "PERM-010": "Whole-disk additional directory",
+    "PERM-011": "Broad allow rules without deny rules",
+    "HOOK-001": "Hook script missing",
+    "HOOK-002": "Network-capable hook",
+    "HOOK-003": "Credential in hook command",
+    "HOOK-004": "Remote code piped into shell",
+    "HOOK-005": "Unquoted plugin root",
+    "HOOK-006": "World-writable hook script",
+    "MCP-001": "Unencrypted remote endpoint",
+    "MCP-002": "Literal credential in MCP configuration",
+    "MCP-003": "Unpinned MCP runner",
+    "MCP-004": "Untrusted MCP executable location",
+    "MCP-005": "MCP safety checks disabled",
+    "MCP-006": "Deprecated SSE transport",
+    "MCP-007": "Whole-disk filesystem server",
+    "MCP-008": "Raw IP endpoint",
+    "SEC-001": "Secret in configuration or instructions",
+    "INJ-001": "Instruction override",
+    "INJ-002": "Hidden or unapproved action",
+    "INJ-003": "Exfiltration instruction",
+    "INJ-004": "Forced command execution",
+    "INJ-005": "Invisible or directional characters",
+    "INJ-006": "Instruction in HTML comment",
+    "INJ-007": "Encoded instruction blob",
+    "INJ-008": "Safety bypass instruction",
+    "INJ-009": "Sensitive-file read instruction",
+    "SKILL-001": "Unrestricted skill tools",
+    "SKILL-002": "Missing skill metadata",
+    "PLUGIN-001": "Plugin executable directory",
+    "FILE-001": "World-writable configuration",
+    "CFG-001": "Unparseable JSON configuration",
+}
 MAX_FILE_BYTES = 2 * 1024 * 1024
 
 PROJECT_GLOBS = [
@@ -659,19 +704,59 @@ def to_markdown(rep: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def to_sarif(rep: dict) -> dict:
+    """Export the audit as SARIF 2.1.0 without rereading source files."""
+    rules = [{"id": rid, "shortDescription": {"text": title}} for rid, title in SARIF_RULES.items()]
+    indexes = {rule["id"]: index for index, rule in enumerate(rules)}
+    results = []
+    for finding in rep["findings"]:
+        # A new scanner check must still be exportable before its descriptor is
+        # added here (for example when independent check PRs are merged first).
+        if finding["id"] not in indexes:
+            indexes[finding["id"]] = len(rules)
+            rules.append({"id": finding["id"], "shortDescription": {"text": finding["title"]}})
+        location = {"artifactLocation": {"uri": quote(Path(finding["file"]).as_posix(), safe="/")}}
+        if finding["line"] is not None:
+            location["region"] = {"startLine": finding["line"]}
+        results.append({
+            "ruleId": finding["id"],
+            "ruleIndex": indexes[finding["id"]],
+            "level": SARIF_LEVEL[finding["severity"]],
+            "message": {"text": f"{finding['title']}\n{finding['recommendation']}"},
+            "locations": [{"physicalLocation": location}],
+        })
+    return {
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [{
+            "tool": {"driver": {"name": "agent-config-audit", "version": VERSION, "rules": rules}},
+            "results": results,
+            "invocations": [{
+                "executionSuccessful": not rep["errors"],
+                "toolExecutionNotifications": [
+                    {"level": "error", "message": {"text": error}} for error in rep["errors"]
+                ],
+            }],
+        }],
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--root", default=".", help="project directory to audit (default: current directory)")
     ap.add_argument("--extra", action="append", default=[], help="additional file to audit (repeatable)")
     ap.add_argument("--include-home", action="store_true", help="also audit the user-level config files in the home directory")
-    ap.add_argument("--format", choices=["json", "markdown"], default="json")
+    ap.add_argument("--format", choices=["json", "markdown", "sarif"], default="json")
     ap.add_argument("--output", help="write the report to this file instead of stdout")
     ap.add_argument("--fail-on", choices=SEVERITIES, help="exit 1 when a finding of this severity or higher exists")
     args = ap.parse_args(argv)
     auditor = Auditor(Path(args.root), include_home=args.include_home, extra=[Path(e) for e in args.extra])
     auditor.run()
     rep = auditor.report()
-    text = to_markdown(rep) if args.format == "markdown" else json.dumps(rep, indent=1, ensure_ascii=False) + "\n"
+    if args.format == "markdown":
+        text = to_markdown(rep)
+    else:
+        text = json.dumps(to_sarif(rep) if args.format == "sarif" else rep, indent=1, ensure_ascii=False) + "\n"
     if args.output:
         Path(args.output).write_text(text, encoding="utf-8")
         print(f"wrote {args.output} ({rep['summary']['total']} findings)", file=sys.stderr)

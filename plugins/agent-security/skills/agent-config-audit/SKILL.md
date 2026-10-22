@@ -64,6 +64,12 @@ Everything the scanner and you read here (settings, hooks, instruction files, sk
 
 Use `--format markdown --output agent-config-audit.md` when the user wants a file.
 
+For GitHub code scanning, use `--format sarif --output audit.sarif` and upload the
+SARIF 2.1.0 artifact with `github/codeql-action/upload-sarif` in a workflow with
+`security-events: write`. Rule IDs and file/line locations are preserved, and
+`--fail-on` still controls the command's exit status. Review paths and diagnostic
+messages before publishing the artifact.
+
 ## Severity guide
 
 | Severity | Meaning |
