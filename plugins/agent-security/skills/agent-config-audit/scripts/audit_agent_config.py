@@ -112,6 +112,20 @@ TAG_CHARS_RE = re.compile("[\U000e0000-\U000e007f]")
 BASE64_BLOB_RE = re.compile(r"(?<![A-Za-z0-9+/=])(?:[A-Za-z0-9+/]{4}){20,}(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?(?![A-Za-z0-9+/=])")
 NETWORK_TOOL_RE = re.compile(r"(?i)\b(curl|wget|nc|ncat|netcat|socat|telnet|ssh|scp|sftp|rsync|Invoke-WebRequest|Invoke-RestMethod|iwr|irm)\b|https?://")
 PIPE_TO_SHELL_RE = re.compile(r"(?i)(curl|wget)\b[^|\n]*\|\s*(sudo\s+)?(sh|bash|zsh|python3?|node|perl)\b")
+# PERM-012: Read(...) allow rules that cover credential stores or private keys.
+# Matches the same shapes as agent-config-audit upstream:
+#   ./.env, ./.env.local, ./.env.production, ~/.ssh/**, ~/.aws/credentials, ~/.netrc,
+#   id_rsa, id_ed25519, **/*.pem, **/*.key
+# .env.example, .env.sample and .env.template (including path-prefixed variants) are excluded.
+SECRET_READ_PATH_RE = re.compile(
+    r"(?:^|[/\\])"
+    r"(?:"
+    r"\.env(?![^/\\]*\.(?:example|sample|template)(?:$|[/\\]))[^/\\]*"
+    r"|\.ssh|\.aws|\.netrc|id_rsa|id_ed25519"
+    r")"
+    r"(?:$|[/\\])"
+    r"|(?:^|[/\\])[^/\\]*\.(?:pem|key)$"
+)
 
 
 @dataclass
@@ -358,6 +372,9 @@ class Auditor:
         elif tool_l.startswith("mcp__") and (tool_l.endswith("*") or tool_l.count("__") == 1) and not spec:
             self.add("PERM-006", "medium", "permissions", "Every tool of an MCP server is pre-approved", path, line, rule,
                      "Allow the individual read-only tools you need; keep write and delete tools behind a prompt.")
+        elif tool_l == "Read" and SECRET_READ_PATH_RE.search(spec):
+            self.add("PERM-012", "medium", "permissions", "Read allow rule covers a secret-bearing path", path, line, rule,
+                     "Remove the pre-approval for credential stores and private keys; allow only the project files needed and retain a prompt for secrets.")
 
     # hooks ----------------------------------------------------------------------
     def scan_hooks(self, path: Path, text: str, hooks: dict, plugin_root: Path | None) -> None:

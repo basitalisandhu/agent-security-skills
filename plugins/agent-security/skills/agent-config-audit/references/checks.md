@@ -17,6 +17,7 @@ Severity in brackets is the default; the scanner lowers it when the context is n
 | PERM-009 [high] | An allow rule carries `--dangerously-skip-permissions` or similar | Bypass flag baked into a pre-approval |
 | PERM-010 [medium] | `additionalDirectories` includes `/`, `~` or the home directory | Whole-disk read and write scope |
 | PERM-011 [low] | Broad allow rules and no deny rules | No backstop for the obvious disasters |
+| PERM-012 edium] | `Read(...)` in `permissions.allow` names `.env*`, `.ssh`, `.aws`, `.netrc`, `*.pem`, `*.key`, `id_rsa` or `id_ed25519`; `.env` components ending in `.example`, `.sample` or `.template` are excluded | Secrets reach the model without a prompt. This checks explicit path shapes, not file contents or every wildcard expansion |
 
 ## Hooks (settings hooks, plugin hooks/hooks.json, plugin.json hooks)
 

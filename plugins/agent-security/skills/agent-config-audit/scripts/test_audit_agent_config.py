@@ -104,6 +104,54 @@ class PermissionTests(unittest.TestCase):
             rc, rep, _ = run_audit(root, "--fail-on", "high")
             self.assertEqual(rc, 0)
 
+    def test_perm_012_secret_path_read_allow(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            write(root, ".claude/settings.json", json.dumps({"permissions": {"allow": [
+                "Read(./.env*)",
+                "Read(~/.ssh/**)",
+                "Read(/home/alice/.aws/credentials)",
+                "Read(~/.netrc)",
+                "Read(**/*.pem)",
+                "Read(**/*.key)",
+                "Read(./id_rsa)",
+                "Read(./id_ed25519)",
+                "Read(./.env.local)",
+            ]}}))
+            rc, rep, _ = run_audit(root)
+            findings = [f for f in rep["findings"] if f["id"] == "PERM-012"]
+            self.assertEqual(len(findings), 9, f"expected 9 PERM-012 findings, got {len(findings)}: {[f['evidence'] for f in findings]}")
+            for f in findings:
+                self.assertEqual(f["severity"], "medium")
+                self.assertTrue(f["line"])
+
+    def test_perm_012_excludes_env_templates(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            write(root, ".claude/settings.json", json.dumps({"permissions": {"allow": [
+                "Read(./.env.example)",
+                "Read(./.env.sample)",
+                "Read(./.env.template)",
+                "Read(./config/.env.local.example)",
+                "Read(./.env.template/README.md)",
+                "Read(./src/**)",
+                "Read(./keynote.md)",
+                "Read(./environment.md)",
+                "Read(./aws-guide.md)",
+                "Write(./id_rsa)",
+            ]}}))
+            rc, rep, _ = run_audit(root)
+            self.assertNotIn("PERM-012", ids(rep), f"unexpected PERM-012 finding: {[f['evidence'] for f in rep['findings'] if f['id'] == 'PERM-012']}")
+
+    def test_perm_012_windows_path_still_warns(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            write(root, ".claude/settings.json", json.dumps({"permissions": {"allow": [r"Read(C:\project\.env.local)"]}}))
+            rc, rep, _ = run_audit(root)
+            findings = [f for f in rep["findings"] if f["id"] == "PERM-012"]
+            self.assertEqual(len(findings), 1)
+            self.assertEqual(findings[0]["severity"], "medium")
+
 
 class McpTests(unittest.TestCase):
     def test_remote_literal_unpinned(self):
