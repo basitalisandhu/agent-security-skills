@@ -348,6 +348,8 @@ def load(path: Path) -> list[dict]:
         text = path.read_text(encoding="utf-8-sig")
     except OSError as exc:
         raise InputError(f"{path}: cannot read: {exc}") from exc
+    except UnicodeDecodeError as exc:
+        raise InputError(f"{path.name}: not UTF-8 text (byte {exc.start}); export the log as UTF-8 JSON lines") from exc
     records: list = []
     try:
         doc = json.loads(text)

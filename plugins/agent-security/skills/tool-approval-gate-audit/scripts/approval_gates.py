@@ -470,7 +470,7 @@ def parse_policy(path: str) -> dict[str, str]:
     if not isinstance(data, dict):
         raise UsageError(f"policy {path} must be a JSON object of tool name to always, never or conditional")
     for key, value in data.items():
-        if value not in POLICY_VALUES:
+        if not isinstance(value, str) or value not in POLICY_VALUES:
             raise UsageError(f"policy {path}: tool {key!r} has {value!r}; use always, never or conditional")
     return data
 
