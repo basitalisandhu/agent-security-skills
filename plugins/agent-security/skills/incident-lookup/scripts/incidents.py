@@ -161,7 +161,7 @@ def load_incidents(args) -> tuple[list[dict], str]:
     if args.data:
         try:
             return _parse_dataset(json.loads(Path(args.data).read_text(encoding="utf-8-sig"))), f"file {args.data}"
-        except (OSError, ValueError) as exc:  # ValueError covers JSONDecodeError, UnicodeDecodeError and bad shapes
+        except (OSError, ValueError, RecursionError) as exc:  # ValueError covers JSONDecodeError, UnicodeDecodeError, bad shapes
             _input_error(f"--data {args.data}: {exc}")
     bundled = lambda why: (_parse_dataset(json.loads(BUNDLED.read_text(encoding="utf-8"))), f"bundled snapshot ({why})")  # noqa: E731
     if args.offline:
@@ -398,7 +398,10 @@ def _load_design(path: str) -> dict:
         text = Path(path).read_text(encoding="utf-8-sig")
     except (OSError, UnicodeDecodeError) as exc:
         _input_error(f"--design {path}: {exc}")
-    data = _parse_design(text)
+    try:
+        data = _parse_design(text)
+    except RecursionError:
+        _input_error(f"--design {path}: JSON nested too deeply to read")
     if isinstance(data, dict) and isinstance(data.get("detections"), dict):
         data = _design_from_scan(data)
     if not isinstance(data, dict):

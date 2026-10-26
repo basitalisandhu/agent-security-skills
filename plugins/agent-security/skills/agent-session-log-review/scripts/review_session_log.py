@@ -368,6 +368,10 @@ def load(path: Path) -> list[dict]:
                 records.append(json.loads(line))
             except json.JSONDecodeError as exc:
                 raise InputError(f"{path.name}:{n}: not JSON: {exc.msg}") from exc
+            except RecursionError as exc:
+                raise InputError(f"{path.name}:{n}: JSON nested too deeply to read") from exc
+    except RecursionError as exc:
+        raise InputError(f"{path.name}: JSON nested too deeply to read") from exc
     if not isinstance(records, list) or not all(isinstance(r, dict) for r in records):
         raise InputError(f"{path.name}: expected JSON lines or a list of objects")
     out: list[dict] = []

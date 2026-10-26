@@ -465,7 +465,7 @@ def parse_policy(path: str) -> dict[str, str]:
         data = json.loads(Path(path).read_text(encoding="utf-8"))
     except OSError as exc:
         raise UsageError(f"cannot read policy {path}: {exc.strerror or exc}") from exc
-    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+    except (json.JSONDecodeError, UnicodeDecodeError, RecursionError) as exc:
         raise UsageError(f"policy {path} is not valid JSON: {exc}") from exc
     if not isinstance(data, dict):
         raise UsageError(f"policy {path} must be a JSON object of tool name to always, never or conditional")

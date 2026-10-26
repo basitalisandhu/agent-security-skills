@@ -273,6 +273,10 @@ class Auditor:
     def scan_json(self, path: Path, text: str) -> None:
         try:
             data = json.loads(text)
+        except RecursionError:
+            self.add("CFG-001", "low", "config", "JSON file is nested too deeply to parse", path, None, path.name,
+                     "Fix the file; a config that fails to parse is silently ignored by most hosts, so its protections are not applied.")
+            return
         except json.JSONDecodeError as exc:
             self.add("CFG-001", "low", "config", "JSON file does not parse", path, exc.lineno, str(exc)[:120],
                      "Fix the syntax; a config that fails to parse is silently ignored by most hosts, so its protections (deny rules, hooks) are not applied.")

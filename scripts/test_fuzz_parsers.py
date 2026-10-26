@@ -23,7 +23,7 @@ PLUGIN = ROOT / "plugins" / "agent-security"
 SKILLS = PLUGIN / "skills"
 SEED = int(os.environ.get("AGENT_SECURITY_FUZZ_SEED", "20261026"))
 CASES = int(os.environ.get("AGENT_SECURITY_FUZZ_CASES", "12"))
-FIXED = [b"", b"\xef\xbb\xbf", b"\xff\xfe\x00", b"null", b"[]", b"{}", b"1", b'"text"', b"[" * 500 + b"]" * 500]
+FIXED = [b"", b"\xef\xbb\xbf", b"\xff\xfe\x00", b"null", b"[]", b"{}", b"1", b'"text"', b"[" * 500 + b"]" * 500, b"[" * 50000 + b"]" * 50000]
 
 
 class Fuzzer:

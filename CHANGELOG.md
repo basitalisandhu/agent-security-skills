@@ -19,6 +19,7 @@ All notable changes to this project are documented here. The format follows Keep
 - `agent-session-log-review`: a log that is not UTF-8 ended in a `UnicodeDecodeError` traceback; it now exits 2 with the byte offset and a hint to export as UTF-8.
 - `incident-lookup`: an empty, non-UTF-8, malformed or wrongly shaped `--data` file, and a `--design` file that is not a JSON object, ended in a traceback; both exit 2 with a one-line message now. Dataset fields that should be lists but hold a number or a lone string (`tags`, `cve`, mappings, affected vendors) no longer crash `list` and `stats`.
 - `tool-approval-gate-audit`: a `--policy` value that is a list or an object (`{"send_email": ["always"]}`) crashed with `unhashable type`; it now exits 2 naming the tool.
+- JSON nested tens of thousands of levels deep (`[[[[...]]]]`) ended in a `RecursionError` traceback in the session log review, `incidents.py --data` and `--design`, the approval gate policy loader, the config audit and the stack scan; each now reports it as unreadable input (exit 2, a `CFG-001` finding, or a note for the stack scan).
 - Hooks: hook input that is valid JSON but not an object (`[]`, `null`), or a `tool_input` that is a string, crashed both hooks with a traceback; they now report it on stderr and exit 1 (a non-blocking error), as they already did for invalid JSON.
 
 ### Changed
