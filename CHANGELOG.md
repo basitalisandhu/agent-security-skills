@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format follows Keep
 
 ### Added
 
+- `agent-config-audit`: SARIF 2.1.0 output for code scanning, with stable rule IDs, severity mapping, redacted finding locations and scan-error notifications.
 - `incident-lookup`: `list` and `precedents` accept `--format csv` before or after the subcommand, preserving each command's columns, including precedent scores and explanations. Lists use `; ` inside CSV cells; stdout contains only the header and rows, including a header for empty results.
 
 ### Fixed
