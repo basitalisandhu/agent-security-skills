@@ -6,7 +6,7 @@ rules:
     severity: ERROR
     languages: [json]
     paths:
-      include: ["**/settings.json", "**/settings.local.json"]
+      include: ["**/settings.json", "**/settings.local.json", "**/hooks/hooks.json"]
     metadata:
       category: security
       cwe: "CWE-78: OS Command Injection"
@@ -21,7 +21,7 @@ rules:
           "hooks": { ... }
       - pattern: |
           "command": $COMMAND
-      - pattern-regex: '"command"\s*:\s*"[^"]*\b(?:curl|wget)\b[^"]*\|\s*(?:(?:/usr/bin/|/bin/))?(?:sh|bash|zsh|python|python3|node|perl)\b'
+      - pattern-regex: '"command"\s*:\s*"[^"]*\b(?:curl|wget)\b[^"]*\|\s*(?:sudo\s+)?(?:(?:/usr/bin/|/bin/))?(?:sh|bash|zsh|python|python3|node|perl)\b'
 
   - id: agentic.config.bash-wildcard-allowed
     message: >-
