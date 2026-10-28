@@ -10,9 +10,10 @@ from test_hooks import BLOCK, run_hook
 
 class InterpreterReadTests(unittest.TestCase):
     def test_python_options_do_not_hide_literal_reads(self):
-        for flags in ["-I", "-u -B", "-X dev", "-W ignore", "-I -X dev -B"]:
-            with self.subTest(flags=flags):
-                rc, out, err = run_hook(BLOCK, f"""python3 {flags} -c "print(open('.env').read())" """)
+        options = ["-I -c", "-u -B -c", "-X dev -c", "-W ignore -c", "-I -X dev -B -c", "-Ic", "-uBc"]
+        for opts in options:
+            with self.subTest(options=opts):
+                rc, out, err = run_hook(BLOCK, f"""python3 {opts} "print(open('.env').read())" """)
                 self.assertEqual(rc, 2, err)
                 self.assertEqual(out, "")
                 self.assertIn(".env", err)

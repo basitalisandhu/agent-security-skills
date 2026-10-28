@@ -182,14 +182,15 @@ def _python_source(args: list[str]) -> str | None:
     i = 0
     while i < len(args):
         arg = args[i]
-        if arg == "-c":
-            return args[i + 1] if i + 1 < len(args) else None
         if arg in {"-W", "-X"}:
             i += 2
         elif arg.startswith(("-W", "-X")) and len(arg) > 2:
             i += 1
         elif arg.startswith("-") and len(arg) > 1 and set(arg[1:]) <= set("bBdEiIOPqRsSuvx"):
             i += 1
+        elif (arg.startswith("-") and len(arg) > 1 and arg[-1] == "c"
+              and set(arg[1:-1]) <= set("bBdEiIOPqRsSuvx")):
+            return args[i + 1] if i + 1 < len(args) else None
         else:
             return None
     return None
