@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows Keep
 
 ## [Unreleased]
 
+### Added
+
+- `incident-lookup`: `list` and `precedents` accept `--format csv` before or after the subcommand, preserving each command's columns, including precedent scores and explanations. Lists use `; ` inside CSV cells; stdout contains only the header and rows, including a header for empty results.
+
 ### Fixed
 
 - `agent-config-audit`: mirror the standalone scanner's medium-severity `PERM-012` finding for explicit `Read` allow rules over credential stores and private keys, with the same rule ID and `.env` template exceptions. Ordinary project paths and deny-only rules are not flagged.
