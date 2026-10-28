@@ -1,6 +1,6 @@
 {
   "name": "@basitalisandhu/agent-incidents-mcp",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "mcpName": "io.github.basitalisandhu/agent-incidents",
   "private": false,
   "description": "Read-only MCP server (stdio) over the AI agent incident dataset bundled with the agent-security plugin.",
@@ -48,7 +48,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.0",
-    "zod": "^3.25.0"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
