@@ -7,6 +7,34 @@ All notable changes to this project are documented here. The format follows Keep
 ### Added
 
 - `agent-config-audit`: SARIF 2.1.0 output for code scanning, with stable rule IDs, severity mapping, redacted finding locations and scan-error notifications.
+- `incident-lookup`: `list` and `precedents` accept `--format csv` before or after the subcommand, preserving each command's columns, including precedent scores and explanations. Lists use `; ` inside CSV cells; stdout contains only the header and rows, including a header for empty results.
+
+### Fixed
+
+- `agent-config-audit`: mirror the standalone scanner's medium-severity `PERM-012` finding for explicit `Read` allow rules over credential stores and private keys, with the same rule ID and `.env` template exceptions. Ordinary project paths and deny-only rules are not flagged.
+
+## [0.6.0] - 2026-10-26
+
+### Added
+
+- `incident-lookup`: `precedents --design` accepts the JSON written by agent-threat-model's `scan_agent_stack.py --json` as it is, using its detected input channels and authorities (they already share the dataset vocabulary) and the system name, so a first set of precedents for a scanned agent takes two commands. `agent-threat-model` step 5 shows the pair.
+- A `README.md` in every skill folder with a sample run on a bundled fixture. `scripts/readme_samples.py --write` refreshes them and `scripts/test_readme_samples.py` fails when a sample no longer matches what the script prints.
+- Seeded fuzz tests for every script that reads outside input (`scripts/test_fuzz_parsers.py`): empty files, byte order marks, bytes that are not UTF-8, truncated and byte-flipped fixtures, and fixtures with one value swapped for another type. Set `AGENT_SECURITY_FUZZ_SEED` and `AGENT_SECURITY_FUZZ_CASES` to explore further.
+- An end-to-end test (`scripts/test_integration_chain.py`) that runs the design-review chain across four skills on one fixture agent: stack scan, incident precedents, tool inventory and approval gate audit, checking that the inventory and the gate audit agree on which tools are consequential.
+
+### Fixed
+
+- `agent-config-audit`: a settings or MCP file with a value of the wrong type (`"permissions": true`, `"allow": true`, a number as an MCP `url` or `command`, a list as `headers`) stopped the scan with a traceback; such values are now ignored like any other unrecognised setting. A settings file with thousands of risky allow rules took seconds because every finding counted lines from the start of the file (12,000 risky rules each of two kinds in a 900 KB file: 6.8 s, now 0.4 s); line numbers now come from a cached index, with a scaling test to keep it that way.
+- `agent-session-log-review`: a log that is not UTF-8 ended in a `UnicodeDecodeError` traceback; it now exits 2 with the byte offset and a hint to export as UTF-8.
+- `incident-lookup`: an empty, non-UTF-8, malformed or wrongly shaped `--data` file, and a `--design` file that is not a JSON object, ended in a traceback; both exit 2 with a one-line message now. Dataset fields that should be lists but hold a number or a lone string (`tags`, `cve`, mappings, affected vendors) no longer crash `list` and `stats`.
+- `tool-approval-gate-audit`: a `--policy` value that is a list or an object (`{"send_email": ["always"]}`) crashed with `unhashable type`; it now exits 2 naming the tool.
+- JSON nested tens of thousands of levels deep (`[[[[...]]]]`) ended in a `RecursionError` traceback in the session log review, `incidents.py --data` and `--design`, the approval gate policy loader, the config audit and the stack scan; each now reports it as unreadable input (exit 2, a `CFG-001` finding, or a note for the stack scan).
+- Hooks: hook input that is valid JSON but not an object (`[]`, `null`), or a `tool_input` that is a string, crashed both hooks with a traceback; they now report it on stderr and exit 1 (a non-blocking error), as they already did for invalid JSON.
+
+### Changed
+
+- Skill descriptions for `agent-eval-harness`, `agent-session-log-review`, `incident-lookup`, `secure-agent-checklist`, `semgrep-agentic`, `tool-approval-gate-audit`, `agent-threat-model`, `mcp-server-review` and `prompt-injection-review` name the requests they were missing (comparing defences, chat exports and retried denials, citing precedents, sign-off before a demo, subprocess and SQL sinks, file deletes and e-mail sends) and the neighbours they are not for.
+- Version 0.6.0 in the marketplace, plugin manifest, MCP server package, `server.json`, server and scanner version constants and README examples.
 
 ## [0.5.0] - 2026-10-18
 

@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import csv
 import json
 import os
 import sys
@@ -98,6 +99,13 @@ def _cache_path(cache_dir: str | None) -> Path:
     return base / "agent-security-skills" / "incidents.json"
 
 
+def _strs(value) -> list[str]:
+    """A list field from the dataset as strings: a lone string becomes one item, any other non-list is empty."""
+    if isinstance(value, str):
+        return [value] if value else []
+    return [str(x) for x in value if x is not None] if isinstance(value, list) else []
+
+
 def _normalise(entry: dict) -> dict:
     """Bring a record to the schema shape. Accepts the flat legacy shape (url, notes, vendors, cve string) too."""
     e = dict(entry)
@@ -107,8 +115,8 @@ def _normalise(entry: dict) -> dict:
     cve = e.get("cve")
     if isinstance(cve, str):
         e["cve"] = [] if cve.strip() in {"", "-"} else [c.strip() for c in cve.split(",")]
-    elif not isinstance(cve, list):
-        e["cve"] = []
+    else:
+        e["cve"] = _strs(cve)
     for f in FIELDS + ["name", "date"]:
         e[f] = "" if e.get(f) is None else str(e.get(f, ""))
     sources = e.get("sources")
@@ -117,11 +125,11 @@ def _normalise(entry: dict) -> dict:
     e["sources"] = [s if isinstance(s, dict) else {"url": str(s)} for s in sources]
     e["summary"] = str(e.get("summary") or e.get("notes") or "")
     m = e.get("mappings") if isinstance(e.get("mappings"), dict) else {}
-    e["mappings"] = {k: [str(x) for x in (m.get(k) or [])] for k in ("owasp_agentic", "owasp_llm", "mitre_atlas")}
+    e["mappings"] = {k: _strs(m.get(k)) for k in ("owasp_agentic", "owasp_llm", "mitre_atlas")}
     a = e.get("affected") if isinstance(e.get("affected"), dict) else {}
-    e["affected"] = {"vendors": [str(x) for x in (a.get("vendors") or e.get("vendors") or ([e["vendor"]] if e.get("vendor") else []))],
-                     "products": [str(x) for x in (a.get("products") or [])], "frameworks": [str(x) for x in (a.get("frameworks") or [])]}
-    e["tags"] = [str(x) for x in (e.get("tags") or [])]
+    e["affected"] = {"vendors": _strs(a.get("vendors") or e.get("vendors") or ([str(e["vendor"])] if e.get("vendor") else [])),
+                     "products": _strs(a.get("products")), "frameworks": _strs(a.get("frameworks"))}
+    e["tags"] = _strs(e.get("tags"))
     e["status"] = str(e.get("status") or "confirmed")
     e.pop("url", None); e.pop("notes", None); e.pop("vendors", None); e.pop("vendor", None)
     return e
@@ -152,7 +160,10 @@ def _parse_dataset(raw) -> list[dict]:
 def load_incidents(args) -> tuple[list[dict], str]:
     """Return (incidents, source description)."""
     if args.data:
-        return _parse_dataset(json.loads(Path(args.data).read_text(encoding="utf-8"))), f"file {args.data}"
+        try:
+            return _parse_dataset(json.loads(Path(args.data).read_text(encoding="utf-8-sig"))), f"file {args.data}"
+        except (OSError, ValueError, RecursionError) as exc:  # ValueError covers JSONDecodeError, UnicodeDecodeError, bad shapes
+            _input_error(f"--data {args.data}: {exc}")
     bundled = lambda why: (_parse_dataset(json.loads(BUNDLED.read_text(encoding="utf-8"))), f"bundled snapshot ({why})")  # noqa: E731
     if args.offline:
         return bundled("offline")
@@ -292,7 +303,18 @@ def render_markdown(rows: list[dict], columns: list[str]) -> str:
 
 
 def emit(rows: list[dict], fmt: str, columns: list[str] = COLUMNS) -> None:
-    if fmt == "json":
+    if fmt == "csv":
+        writer = csv.writer(sys.stdout)
+        writer.writerow(columns)
+        def csv_cell(row, column):
+            if column == "cve":
+                return "; ".join(row.get(column, []))
+            if column in LIST_FIELDS:
+                return "; ".join(_list_values(row, column))
+            value = row.get(column)
+            return "; ".join(value) if isinstance(value, list) else _cell_value(row, column)
+        writer.writerows([csv_cell(row, column) for column in columns] for row in rows)
+    elif fmt == "json":
         print(json.dumps(rows, indent=1, ensure_ascii=False))
     elif fmt == "markdown":
         print(render_markdown(rows, [c for c in columns if c != "url"]))
@@ -373,10 +395,51 @@ def cmd_fields(incidents, args):
             print(f"{f}:\n  " + "\n  ".join(values) + "\n")
 
 
+def _input_error(message: str) -> None:
+    """Bad input file: print one line and exit 2, never a traceback."""
+    print(f"incidents: {message}", file=sys.stderr)
+    raise SystemExit(2)
+
+
 def _load_design(path: str) -> dict:
     """A design file is JSON: {"name": "...", "channel_in": [...], "authority": [...], "vector": [...], "channel_out": [...]}.
-    A flat 'key: a, b' text file is accepted too, so users need no YAML parser."""
-    text = Path(path).read_text(encoding="utf-8")
+    A flat 'key: a, b' text file is accepted too, so users need no YAML parser, and so is the JSON written by
+    agent-threat-model's `scan_agent_stack.py --json` (its detected inputs and authorities). Lists are reduced to
+    their strings; an unreadable file or a JSON value that is not an object exits 2."""
+    try:
+        text = Path(path).read_text(encoding="utf-8-sig")
+    except (OSError, UnicodeDecodeError) as exc:
+        _input_error(f"--design {path}: {exc}")
+    try:
+        data = _parse_design(text)
+    except RecursionError:
+        _input_error(f"--design {path}: JSON nested too deeply to read")
+    if isinstance(data, dict) and isinstance(data.get("detections"), dict):
+        data = _design_from_scan(data)
+    if not isinstance(data, dict):
+        _input_error(f"--design {path}: expected a JSON object with channel_in, authority, vector or channel_out lists")
+    for key in ("channel_in", "authority", "vector", "channel_out"):
+        value = data.get(key)
+        values = value if isinstance(value, list) else [value] if isinstance(value, str) else []
+        data[key] = [v for v in values if isinstance(v, str)]
+    if not isinstance(data.get("name"), str):
+        data.pop("name", None)
+    return data
+
+
+def _design_from_scan(scan: dict) -> dict:
+    """Turn `scan_agent_stack.py --json` output into a design: its input and authority detections already use the
+    dataset's channel_in and authority vocabulary, so the scan can be passed to --design as it is."""
+    hits = scan["detections"].get("hits") if isinstance(scan["detections"].get("hits"), dict) else {}
+    model = scan.get("model") if isinstance(scan.get("model"), dict) else {}
+    system = model.get("system") if isinstance(model.get("system"), dict) else {}
+    design = {"channel_in": sorted(hits.get("inputs") or {}), "authority": sorted(hits.get("authorities") or {})}
+    if isinstance(system.get("name"), str) and system["name"]:
+        design["name"] = system["name"]
+    return design
+
+
+def _parse_design(text: str):
     try:
         data = json.loads(text)
     except json.JSONDecodeError:
@@ -431,6 +494,9 @@ def cmd_precedents(incidents, args):
                           "vectors": _stats(ranked, "vector"), "frameworks": frameworks,
                           "controls": {v: CONTROLS.get(v, []) for v in sorted({r["vector"] for r in ranked})}}, indent=1, ensure_ascii=False))
         return 0
+    if args.format == "csv":
+        emit(top, "csv", ["id", "date", "name", "score", "why", "outcome", "owasp_agentic", "url"])
+        return 0
     md = args.format == "markdown"
     print(f"Precedents for {name}: {len(ranked)} matching incident(s), showing {len(top)}\n")
     cols = ["id", "date", "name", "score", "why", "outcome", "owasp_agentic"]
@@ -456,11 +522,11 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--offline", action="store_true", help="never touch the network; use the bundled snapshot")
     ap.add_argument("--refresh", action="store_true", help="ignore the cache and fetch again")
     ap.add_argument("--cache-dir", help="cache directory (default: $XDG_CACHE_HOME or ~/.cache)")
-    ap.add_argument("--format", choices=["table", "json", "markdown"], default="table")
+    ap.add_argument("--format", choices=["table", "json", "markdown", "csv"], default="table")
     # --format is also accepted after the subcommand (`incidents.py list --format markdown`); SUPPRESS keeps the
     # global value when the subcommand does not repeat it.
     fmt = argparse.ArgumentParser(add_help=False)
-    fmt.add_argument("--format", choices=["table", "json", "markdown"], default=argparse.SUPPRESS)
+    fmt.add_argument("--format", choices=["table", "json", "markdown", "csv"], default=argparse.SUPPRESS)
     sub = ap.add_subparsers(dest="command", required=True)
 
     def add_filters(p):
@@ -487,7 +553,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.format == "csv" and args.command not in {"list", "precedents"}:
+        parser.error("--format csv is supported only by list and precedents")
     incidents, source = load_incidents(args)
     print(f"incidents: {len(incidents)} entries from {source}", file=sys.stderr)
     rc = args.fn(incidents, args)

@@ -42,6 +42,7 @@ that the SARIF rule catalog matches the IDs in this reference.
 | PERM-009 [high] | An allow rule carries `--dangerously-skip-permissions` or similar | Bypass flag baked into a pre-approval |
 | PERM-010 [medium] | `additionalDirectories` includes `/`, `~` or the home directory | Whole-disk read and write scope |
 | PERM-011 [low] | Broad allow rules and no deny rules | No backstop for the obvious disasters |
+| PERM-012 [medium] | `Read` allow rule covers `.env*` (except `.example`/`.sample`/`.template`), `.ssh`, `.aws`, `.netrc`, private-key names or `*.pem`/`*.key` | Credential reads no longer require approval |
 
 ## Hooks (settings hooks, plugin hooks/hooks.json, plugin.json hooks)
 

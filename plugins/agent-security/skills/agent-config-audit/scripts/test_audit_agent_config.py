@@ -75,6 +75,48 @@ class CleanProjectTests(unittest.TestCase):
 
 
 class PermissionTests(unittest.TestCase):
+    def test_runnable_risky_reads_fixture(self):
+        _, rep, _ = run_audit(HERE.parents[4] / "tests/fixtures/risky-reads")
+        found = [f for f in rep["findings"] if f["id"] == "PERM-012"]
+        self.assertEqual(len(found), 1)
+        self.assertEqual(found[0]["evidence"], "Read(./.env)")
+        self.assertEqual(found[0]["line"], 4)
+
+    def test_secret_read_allow_rules_have_perm_012(self):
+        paths = [
+            "./.env", "./.env.production", "~/.ssh/**", "~/.aws/credentials",
+            "./.netrc", "./id_rsa", "./id_ed25519", "./cert.pem", "./private.key",
+            "./.env*", "**/*.pem", "**/*.key", "./.env.example.local", "./.env.examples", "./.env.sample*",
+            r"C:\project\.env", r"C:\Users\test\.ssh\id_rsa",
+        ]
+        for spec in paths:
+            with self.subTest(spec=spec), tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                rule = f"Read({spec})"
+                write(root, ".claude/settings.json", json.dumps({"permissions": {"allow": [rule]}}))
+                _, rep, _ = run_audit(root)
+                found = [f for f in rep["findings"] if f["id"] == "PERM-012"]
+                self.assertEqual(len(found), 1)
+                self.assertEqual(found[0]["severity"], "medium")
+                self.assertEqual(found[0]["evidence"], rule)
+                if "\\" not in spec:
+                    self.assertTrue(found[0]["line"])
+
+    def test_secret_read_rule_controls_are_not_flagged(self):
+        rules = [
+            "Read(./src/**)", "Read(./keynote.md)", "Read(./environment.md)",
+            "Read(./aws-guide.md)", "Read(./id_rsa.pub)", "Read(./.env.example)",
+            "Read(./.env.sample)", "Read(./.env.template)", "Read(./config/.env.local.example)",
+            r"Read(C:\project\.env.sample)", "Read(./.env.template/README.md)", "Write(./id_rsa)",
+        ]
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            write(root, ".claude/settings.json", json.dumps({
+                "permissions": {"allow": rules, "deny": ["Read(./.env)", "Read(~/.ssh/**)"]},
+            }))
+            _, rep, _ = run_audit(root)
+            self.assertNotIn("PERM-012", ids(rep))
+
     def test_broad_rules_and_bypass(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
