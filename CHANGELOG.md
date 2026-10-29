@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows Keep
 
 ## [Unreleased]
 
+### Added
+
+- `agent-eval-harness`: `--format markdown` prints the summary table as a GitHub-flavoured Markdown table for a pull request comment or a report, with the same columns and numbers as the text table; `--format json` is a synonym for `--json` and the default output is unchanged.
+
 ## [0.6.1] - 2026-10-29
 
 ### Added
