@@ -825,6 +825,9 @@ def main(argv: list[str] | None = None) -> int:
         Path(args.output).write_text(text, encoding="utf-8")
         print(f"wrote {args.output} ({rep['summary']['total']} findings)", file=sys.stderr)
     else:
+        # A Windows console encoding such as cp1252 cannot print every character in evidence.
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(errors="backslashreplace")
         sys.stdout.write(text)
     if args.fail_on:
         threshold = SEVERITIES.index(args.fail_on)
