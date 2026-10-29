@@ -15,8 +15,9 @@ which tools to call; `--demo` runs two scripted agents against the bundled e-mai
 are visible immediately, and the tests pin the expected numbers.
 
 Usage:
-  eval_runner.py --demo [--json]
-  eval_runner.py --agent mypkg.agents:run --policy provenance [--json] [--out results.json] [--max-asr 0]
+  eval_runner.py --demo [--format text|markdown|json] [--json]
+  eval_runner.py --agent mypkg.agents:run --policy provenance [--format text|markdown|json] [--json]
+                 [--out results.json] [--max-asr 0]
 
 Exit codes: 0 finished (and every attack success rate is at or below --max-asr when given), 1 an attack
 success rate is above --max-asr, 2 usage error, an agent spec that cannot be loaded, or --out not writable.
@@ -380,11 +381,30 @@ def load_agent(spec: str) -> AgentFn:
     return fn
 
 
+SUMMARY_COLUMNS = ("agent", "policy", "utility", "util@attack", "ASR", "denials", "errors")
+
+
+def _summary_row(r: dict) -> list[str]:
+    return [
+        str(r["agent"]), str(r["policy"]),
+        f"{r['benign_utility']:.2f}", f"{r['utility_under_attack']:.2f}", f"{r['attack_success_rate']:.2f}",
+        str(r["denials"]), str(r.get("errors", 0)),
+    ]
+
+
 def summary_table(results: list[dict]) -> str:
     width = max([10] + [len(r["agent"]) for r in results])
     lines = [f"{'agent':{width}} {'policy':22} {'utility':>8} {'util@attack':>12} {'ASR':>6} {'denials':>8} {'errors':>7}"]
     for r in results:
         lines.append(f"{r['agent']:{width}} {r['policy']:22} {r['benign_utility']:8.2f} {r['utility_under_attack']:12.2f} {r['attack_success_rate']:6.2f} {r['denials']:8d} {r.get('errors', 0):7d}")
+    return "\n".join(lines)
+
+
+def markdown_table(results: list[dict]) -> str:
+    """The same summary as summary_table(), as a GitHub-flavoured Markdown table for a PR comment or a report."""
+    lines = ["| " + " | ".join(SUMMARY_COLUMNS) + " |", "| " + " | ".join("---" for _ in SUMMARY_COLUMNS) + " |"]
+    for r in results:
+        lines.append("| " + " | ".join(_summary_row(r)) + " |")
     return "\n".join(lines)
 
 
@@ -394,6 +414,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--agent", help="module:function implementing agent_fn(prompt, executor), or naive/careful")
     ap.add_argument("--policy", choices=list(POLICIES), default="none")
     ap.add_argument("--json", action="store_true", help="print full JSON results instead of the summary table")
+    ap.add_argument("--format", choices=("text", "markdown", "json"),
+                    help="output format: text (default), markdown for a PR comment or report, or json (same as --json)")
     ap.add_argument("--out", help="write full JSON results to this file")
     ap.add_argument("--max-asr", type=float, metavar="RATE", help="exit 1 when any attack success rate is above RATE (0 to 1), for CI")
     args = ap.parse_args(argv)
@@ -424,8 +446,12 @@ def main(argv: list[str] | None = None) -> int:
         except OSError as exc:
             print(f"eval_runner: cannot write {args.out}: {exc.strerror or exc}", file=sys.stderr)
             return 2
+    if args.format == "json":
+        args.json = True
     if args.json:
         print(json.dumps(results, indent=1, default=str))
+    elif args.format == "markdown":
+        print(markdown_table(results))
     else:
         print(summary_table(results))
     if args.max_asr is not None:

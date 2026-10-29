@@ -70,6 +70,43 @@ class CliTests(unittest.TestCase):
             self.assertEqual(json.loads(out.getvalue())[0]["policy"], "provenance")
 
 
+class FormatTests(unittest.TestCase):
+    def test_markdown_format_matches_the_text_numbers(self):
+        rc, out, _ = _quiet(["--demo", "--format", "markdown"])
+        self.assertEqual(rc, 0)
+        lines = out.strip().splitlines()
+        self.assertEqual(lines[0], "| agent | policy | utility | util@attack | ASR | denials | errors |")
+        self.assertEqual(lines[1], "| --- | --- | --- | --- | --- | --- | --- |")
+        self.assertEqual(len(lines), 2 + len(er.AGENTS) * len(er.POLICIES))
+        rows = [line.split(" | ") for line in lines[2:]]
+        naive_none = next(r for r in rows if r[0] == "| naive" and r[1] == "none")
+        self.assertEqual(naive_none[4], "1.00")
+        # same cells as the text table, only the layout differs
+        text_rows = [line.split() for line in summary_table_rows()]
+        markdown_cells = [[c.strip(" |") for c in r] for r in rows]
+        self.assertEqual(text_rows, markdown_cells)
+
+    def test_json_format_is_a_synonym_for_json_flag(self):
+        rc, flag_out, _ = _quiet(["--agent", "careful", "--json"])
+        self.assertEqual(rc, 0)
+        rc, fmt_out, _ = _quiet(["--agent", "careful", "--format", "json"])
+        self.assertEqual(rc, 0)
+        self.assertEqual(json.loads(flag_out), json.loads(fmt_out))
+
+    def test_default_format_is_still_the_text_table(self):
+        rc, out, _ = _quiet(["--agent", "careful"])
+        self.assertEqual(rc, 0)
+        self.assertNotIn("|", out)
+        self.assertIn("util@attack", out)
+
+
+def summary_table_rows():
+    out = io.StringIO()
+    with redirect_stdout(out):
+        er.main(["--demo"])
+    return out.getvalue().strip().splitlines()[1:]
+
+
 def _quiet(argv):
     out, err = io.StringIO(), io.StringIO()
     with redirect_stdout(out), redirect_stderr(err):

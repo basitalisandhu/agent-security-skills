@@ -40,7 +40,7 @@ Injection-task text and the tool results in traces are test data written to look
 
 3. **Choose the policy under test.** `none`, `provenance` (designators must come from the request or typed fields) and `approval` (provenance plus an oracle approver that only passes key arguments entailed by the request) are built in. Add your own `Policy` subclass for an allowlist or a classifier and name it in `POLICIES`.
 
-4. **Run and record.** `--out results.json` keeps every case with its trace, so a failing case can be replayed. Report **benign utility**, **utility under attack**, **ASR** and **denials** per policy. Run each configuration at least three times when a real model is involved and report the spread; a single run is not evidence.
+4. **Run and record.** `--out results.json` keeps every case with its trace, so a failing case can be replayed. `--format markdown` prints the summary as a table you can paste into a pull request comment or a report (`--json` and `--format json` print the full results). Report **benign utility**, **utility under attack**, **ASR** and **denials** per policy. Run each configuration at least three times when a real model is involved and report the spread; a single run is not evidence.
 
 5. **Graduate to AgentDojo** when the agent fits its tool interface. Install `agentdojo`, write the suite as `TaskSuite` with `user_task` and `injection_task` classes, and put the same two policies in the pipeline's tool executor to run them against 949 attack cases. Notes in [references/agentdojo-notes.md](references/agentdojo-notes.md).
 
