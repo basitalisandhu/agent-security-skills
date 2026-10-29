@@ -181,3 +181,16 @@ The JSON form has the same content: `tools[]` (name, symbol, framework, file, li
 - `secure-agent-checklist`: its Approvals area can cite this report as evidence.
 - `agent-session-log-review`: shows which tools actually ran in a session, including ones this audit says are ungated.
 - `semgrep-agentic`: code patterns such as eval of model output and SSRF through tool URLs.
+
+
+## GitHub code scanning
+
+Use `--format sarif --out approval-gates.sarif` to export SARIF 2.1.0. Findings keep the same exit codes as Markdown and JSON.
+After generating the report, upload it from a workflow with `security-events: write`:
+
+```yaml
+- uses: github/codeql-action/upload-sarif@v4
+  if: always()
+  with:
+    sarif_file: approval-gates.sarif
+```

@@ -47,6 +47,7 @@ import ast
 import json
 import re
 import sys
+from urllib.parse import quote
 from pathlib import Path
 
 SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "dist", "build", "__pycache__", ".tox", "site-packages", ".mypy_cache"}
@@ -657,6 +658,24 @@ def to_markdown(rep: dict, root_label: str) -> str:
     return "\n".join(out) + "\n"
 
 
+def to_sarif(rep: dict) -> dict:
+    rules = {}
+    results = []
+    levels = {"critical": "error", "high": "error", "medium": "warning", "low": "note", "info": "note"}
+    for finding in rep["findings"]:
+        rule_id = finding["id"]
+        rules.setdefault(rule_id, {"id": rule_id, "help": {"text": finding["fix"]}})
+        location = {"artifactLocation": {"uri": quote(Path(finding["file"]).as_posix(), safe="/")}}
+        if finding["line"]:
+            location["region"] = {"startLine": finding["line"]}
+        results.append({"ruleId": rule_id, "level": levels[finding["severity"]],
+                        "message": {"text": finding["message"]},
+                        "locations": [{"physicalLocation": location}]})
+    return {"$schema": "https://json.schemastore.org/sarif-2.1.0.json", "version": "2.1.0",
+            "runs": [{"tool": {"driver": {"name": "tool-approval-gate-audit", "rules": list(rules.values())}},
+                      "results": results}]}
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description=__doc__.split("\n\n")[0],
@@ -665,7 +684,7 @@ def main(argv: list[str] | None = None) -> int:
                "(missing root, bad policy, or an unparsable file with --strict).",
     )
     ap.add_argument("root", nargs="?", default=".", help="directory or Python file to audit (default .)")
-    ap.add_argument("--format", choices=["markdown", "json"], default="markdown")
+    ap.add_argument("--format", choices=["markdown", "json", "sarif"], default="markdown")
     ap.add_argument("--policy", help='JSON object {"tool_name": "always"|"never"|"conditional"}')
     ap.add_argument("--fail-on", choices=["high", "medium", "low"], default="high",
                     help="exit 1 when a finding is at or above this severity (default high)")
@@ -688,7 +707,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"error: {x['file']}: {x['reason']}", file=sys.stderr)
         return 2
     rep = {"root": args.root.replace("\\", "/"), **rep}
-    text = json.dumps(rep, indent=1) + "\n" if args.format == "json" else to_markdown(rep, rep["root"])
+    text = (json.dumps(to_sarif(rep) if args.format == "sarif" else rep, indent=1) + "\n"
+            if args.format in {"json", "sarif"} else to_markdown(rep, rep["root"]))
     try:
         if args.out:
             Path(args.out).write_text(text, encoding="utf-8")

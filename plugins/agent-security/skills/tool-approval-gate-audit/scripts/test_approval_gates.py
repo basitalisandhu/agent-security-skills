@@ -180,5 +180,25 @@ class InputTests(unittest.TestCase):
         self.assertIn("| 1 | high | NO-GATE | `save_note` | `server.py:17` |", text)
 
 
+
+
+
+class SarifTests(unittest.TestCase):
+    def test_crewai_sarif_matches_json(self):
+        root = str(FIXTURES / "crewai")
+        rc, report = run_json(root)
+        sarif_rc, output, error = run(root, "--format", "sarif")
+        self.assertEqual(sarif_rc, rc)
+        self.assertEqual(error, "")
+        sarif = json.loads(output)
+        self.assertEqual(sarif["version"], "2.1.0")
+        run_report = sarif["runs"][0]
+        self.assertEqual(run_report["tool"]["driver"]["name"], "tool-approval-gate-audit")
+        rules = {r["id"] for r in run_report["tool"]["driver"]["rules"]}
+        self.assertEqual(len(run_report["results"]), len(report["findings"]))
+        for result, finding in zip(run_report["results"], report["findings"]):
+            self.assertIn(result["ruleId"], rules)
+            self.assertEqual(result["locations"][0]["physicalLocation"]["region"]["startLine"], finding["line"])
+
 if __name__ == "__main__":
     unittest.main()
