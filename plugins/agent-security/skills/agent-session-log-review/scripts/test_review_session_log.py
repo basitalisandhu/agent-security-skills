@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import contextlib
 import io
 import json
@@ -370,6 +371,45 @@ class OutputTests(unittest.TestCase):
         for word in ("INJ-PROVENANCE", "TOOL-DENIED-RETRY", "Exit codes", "--redact"):
             self.assertIn(word, buf.getvalue())
 
+
+
+class GzipTests(unittest.TestCase):
+    def test_gzip_matches_plain(self):
+        example = HERE.parent / "references" / "example-session.jsonl"
+        with tempfile.TemporaryDirectory() as td:
+            compressed = Path(td) / "session.jsonl.gz"
+            compressed.write_bytes(gzip.compress(example.read_bytes()))
+            self.assertEqual(rsl.load(compressed), rsl.load(example))
+            reports = []
+            for path in (example, compressed):
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    rsl.main([str(path), "--format", "json"])
+                report = json.loads(output.getvalue())
+                report.pop("log")  # The input filename is expected to differ.
+                reports.append(report)
+            self.assertEqual(*reports)
+
+    def test_invalid_and_truncated_gzip_are_input_errors(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "session.jsonl.gz"
+            for data in (b"not gzip", gzip.compress(b'{"type":"prompt"}')[:-5],
+                         gzip.compress(b"{}")[0:10] + b"\xff" * 20):
+                with self.subTest(data=data):
+                    path.write_bytes(data)
+                    stderr = io.StringIO()
+                    with contextlib.redirect_stderr(stderr):
+                        self.assertEqual(rsl.main([str(path)]), 2)
+                    self.assertEqual(len(stderr.getvalue().splitlines()), 1)
+
+    def test_decompressed_size_limit(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "session.jsonl.gz"
+            path.write_bytes(gzip.compress(b" " * 200))
+            with patch.object(rsl, "MAX_BYTES", 100):
+                with self.assertRaises(rsl.InputError):
+                    rsl.load(path)
 
 if __name__ == "__main__":
     unittest.main()

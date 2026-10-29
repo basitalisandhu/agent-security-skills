@@ -47,10 +47,12 @@ session), 2 bad input (unreadable file, unknown shape). Standard library only. R
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import re
 import sys
+import zlib
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 SEVERITIES = ["critical", "high", "medium", "low", "info"]
@@ -345,8 +347,15 @@ def load(path: Path) -> list[dict]:
             raise InputError(
                 f"{path.name}: larger than {MAX_BYTES // (1024 * 1024)} MB"
             )
-        text = path.read_text(encoding="utf-8-sig")
-    except OSError as exc:
+        if path.suffix.lower() == ".gz":
+            with gzip.open(path, "rb") as stream:
+                data = stream.read(MAX_BYTES + 1)
+            if len(data) > MAX_BYTES:
+                raise InputError(f"{path.name}: decompressed log larger than {MAX_BYTES // (1024 * 1024)} MB")
+            text = data.decode("utf-8-sig")
+        else:
+            text = path.read_text(encoding="utf-8-sig")
+    except (OSError, EOFError, zlib.error) as exc:
         raise InputError(f"{path}: cannot read: {exc}") from exc
     except UnicodeDecodeError as exc:
         raise InputError(f"{path.name}: not UTF-8 text (byte {exc.start}); export the log as UTF-8 JSON lines") from exc
