@@ -31,7 +31,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path, PureWindowsPath
 from urllib.parse import quote
 
-VERSION = "0.6.0"
+VERSION = "0.6.1"
 SEVERITIES = ["critical", "high", "medium", "low", "info"]
 MAX_FILE_BYTES = 2 * 1024 * 1024
 

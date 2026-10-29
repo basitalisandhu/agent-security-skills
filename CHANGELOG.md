@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows Keep
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-10-29
+
 ### Added
 
 - `agent-config-audit`: SARIF 2.1.0 output for code scanning, with stable rule IDs, severity mapping, redacted finding locations and scan-error notifications.
@@ -14,6 +16,7 @@ All notable changes to this project are documented here. The format follows Keep
 
 - `agent-config-audit`: mirror the standalone scanner's medium-severity `PERM-012` finding for explicit `Read` allow rules over credential stores and private keys, with the same rule ID and `.env` template exceptions. Ordinary project paths and deny-only rules are not flagged.
 - `block-secret-exposure`: inspect literal Python `open`/`Path` reads, Node `readFile`/`readFileSync`, Ruby `File.read` and PHP file reads in interpreter one-liners before they run. Ordinary reads, filename mentions and `.env` templates remain allowed. This is a best-effort literal check, not an interpreter sandbox; computed paths and obfuscated code are outside its scope.
+- `agent-config-audit`: printing a report to a Windows console that cannot encode every character (cp1252) no longer raises `UnicodeEncodeError`; such characters are written as escapes.
 
 ## [0.6.0] - 2026-10-26
 
